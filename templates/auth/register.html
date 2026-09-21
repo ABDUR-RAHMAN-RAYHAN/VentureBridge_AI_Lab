@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<div class="glass card-pad animate-in hover-lift" style="max-width:480px;margin:1.5rem auto;">
+  <h2>Create your account</h2>
+  <p class="text-muted">Join as a Founder, Investor, or Job Seeker.</p>
+  <form method="POST" novalidate>
+    {{ form.hidden_tag() }}
+    <div class="form-group">
+      {{ form.full_name.label }} {{ form.full_name(placeholder="Jane Doe") }}
+      {% for e in form.full_name.errors %}<div class="form-error">{{ e }}</div>{% endfor %}
+    </div>
+    <div class="form-group">
+      {{ form.email.label }} {{ form.email(placeholder="you@example.com") }}
+      {% for e in form.email.errors %}<div class="form-error">{{ e }}</div>{% endfor %}
+    </div>
+    <div class="form-group">
+      {{ form.role.label }} {{ form.role() }}
+    </div>
+    <div class="form-group">
+      {{ form.password.label }} {{ form.password(placeholder="At least 8 characters") }}
+      {% for e in form.password.errors %}<div class="form-error">{{ e }}</div>{% endfor %}
+    </div>
+    <div class="form-group">
+      {{ form.confirm_password.label }} {{ form.confirm_password() }}
+      {% for e in form.confirm_password.errors %}<div class="form-error">{{ e }}</div>{% endfor %}
+    </div>
+    <button class="btn btn-primary" style="width:100%;" type="submit">Create Account</button>
+  </form>
+  <p class="text-muted" style="margin-top:1rem;">Already have an account? <a href="{{ url_for('auth.login') }}">Log in</a></p>
+</div>
+{% endblock %}
