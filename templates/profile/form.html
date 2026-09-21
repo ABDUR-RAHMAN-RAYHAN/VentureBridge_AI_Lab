@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Edit Profile{% endblock %}
+{% block content %}
+<div class="animate-in" style="max-width:640px;margin:0 auto;">
+  <div class="flex-between" style="margin-bottom:1rem;">
+    <h1>Edit Profile</h1>
+    <a href="{{ url_for('main.profile') }}" class="btn btn-outline btn-sm">← Back to Profile</a>
+  </div>
+
+  {% set pct = profile.completion_percent() %}
+  <div class="glass card-pad" style="margin-bottom:1rem;">
+    <p class="text-muted">Profile completion: <strong>{{ pct }}%</strong></p>
+    <div style="height:8px;border-radius:6px;background:rgba(128,128,128,.18);overflow:hidden;">
+      <div style="height:100%;width:{{ pct }}%;background:linear-gradient(90deg,var(--blue-500),var(--green-500));"></div>
+    </div>
+  </div>
+
+  <form method="POST" enctype="multipart/form-data" novalidate>
+    {{ form.hidden_tag() }}
+    <div class="glass card-pad">
+      <div class="form-group">{{ form.photo.label }} {{ form.photo() }}
+        {% for e in form.photo.errors %}<div class="form-error">{{ e }}</div>{% endfor %}</div>
+      <div class="grid grid-2">
+        <div class="form-group">{{ form.phone.label }} {{ form.phone() }}
+          {% for e in form.phone.errors %}<div class="form-error">{{ e }}</div>{% endfor %}</div>
+        <div class="form-group">{{ form.location.label }} {{ form.location() }}
+          {% for e in form.location.errors %}<div class="form-error">{{ e }}</div>{% endfor %}</div>
+      </div>
+      <div class="form-group">{{ form.bio.label }} {{ form.bio(rows=3) }}
+        {% for e in form.bio.errors %}<div class="form-error">{{ e }}</div>{% endfor %}</div>
+      <div class="grid grid-2">
+        <div class="form-group">{{ form.education.label }} {{ form.education() }}
+          {% for e in form.education.errors %}<div class="form-error">{{ e }}</div>{% endfor %}</div>
+        <div class="form-group">{{ form.experience.label }} {{ form.experience() }}
+          {% for e in form.experience.errors %}<div class="form-error">{{ e }}</div>{% endfor %}</div>
+      </div>
+      <div class="form-group">{{ form.industry.label }} {{ form.industry() }}
+        {% for e in form.industry.errors %}<div class="form-error">{{ e }}</div>{% endfor %}</div>
+      <div class="form-group">{{ form.skills.label }} {{ form.skills(placeholder="e.g. Python, Sales, Design") }}
+        {% for e in form.skills.errors %}<div class="form-error">{{ e }}</div>{% endfor %}</div>
+      <div class="form-group">{{ form.interests.label }} {{ form.interests(placeholder="e.g. FinTech, Climate") }}
+        {% for e in form.interests.errors %}<div class="form-error">{{ e }}</div>{% endfor %}</div>
+    </div>
+    <button class="btn btn-primary" style="margin-top:1.2rem;width:100%;" type="submit">Save Profile</button>
+  </form>
+</div>
+{% endblock %}

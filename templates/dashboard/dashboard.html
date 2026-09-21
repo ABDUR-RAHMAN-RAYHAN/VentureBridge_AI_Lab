@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% macro breakdown(title, rows) %}
+<div class="glass card-pad">
+  <h3 style="margin-bottom:.9rem;">{{ title }}</h3>
+  {% set total = rows | sum(attribute='count') %}
+  {% if total > 0 %}
+    {% for r in rows %}
+    <div style="margin-bottom:.8rem;">
+      <div class="flex-between" style="font-size:.88rem;margin-bottom:.25rem;">
+        <span>{{ r.label }}</span>
+        <span class="text-muted"><strong>{{ r.count }}</strong> · {{ ((r.count / total) * 100) | round | int }}%</span>
+      </div>
+      <div style="height:7px;border-radius:5px;background:rgba(128,128,128,.18);overflow:hidden;">
+        <div style="height:100%;width:{{ (r.count / total) * 100 }}%;background:{{ r.color }};border-radius:5px;"></div>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <p class="text-muted" style="font-size:.88rem;">No data yet.</p>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% block content %}
+<div class="animate-in">
+
+  <div class="flex-between flex-wrap gap-2" style="margin-bottom:1.5rem;">
+    <div>
+      <h1 style="margin-bottom:.2rem;">Welcome, {{ current_user.full_name.split()[0] }}</h1>
+      <span class="text-muted">{{ current_user.role|capitalize }} account</span>
+    </div>
+    <a href="{{ url_for('main.profile') }}" class="btn btn-outline btn-sm">View Profile</a>
+  </div>
+
+  {% set pct = current_user.profile.completion_percent() %}
+  {% if pct < 100 %}
+  <div class="glass card-pad" style="margin-bottom:1.5rem;">
+    <div class="flex-between flex-wrap gap-2">
+      <div>
+        <strong>Your profile is {{ pct }}% complete</strong>
+        <div class="text-muted" style="font-size:.85rem;margin-top:.15rem;">Fill in the remaining fields to reach 100%.</div>
+      </div>
+      <a href="{{ url_for('main.profile_edit') }}" class="btn btn-primary btn-sm">Complete Profile</a>
+    </div>
+    <div style="height:8px;border-radius:6px;background:rgba(128,128,128,.18);margin-top:.8rem;overflow:hidden;">
+      <div style="height:100%;width:{{ pct }}%;background:linear-gradient(90deg,var(--blue-500),var(--green-500));border-radius:6px;"></div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if current_user.role == 'admin' %}
+    <h2 style="font-size:1.05rem;margin-bottom:.7rem;">Platform Overview</h2>
+    <div class="grid grid-2">
+      <div class="glass stat-card hover-lift">
+        <div class="stat-label">Total Registered Users</div>
+        <div class="stat-value">{{ total_users }}</div>
+      </div>
+      <div class="glass stat-card hover-lift">
+        <div class="stat-label">Roles Active</div>
+        <div class="stat-value">{{ role_breakdown|length }}</div>
+      </div>
+    </div>
+    <div style="margin-top:1.5rem;">
+      {{ breakdown("Users by Role", role_breakdown) }}
+    </div>
+    <div class="glass card-pad" style="margin-top:1.5rem;">
+      <h3 style="margin-bottom:.5rem;">Coming in Later Phases</h3>
+      <p class="text-muted" style="font-size:.88rem;">User account activation/deactivation, startup and job
+        document review queues, and the platform audit log are built in Week 3, once the underlying
+        startup and verification data exists to review.</p>
+    </div>
+
+  {% else %}
+    <div class="glass card-pad">
+      <h3 style="margin-bottom:.5rem;">
+        {% if current_user.role == 'founder' %}Your Founder Dashboard
+        {% elif current_user.role == 'investor' %}Your Investor Dashboard
+        {% else %}Your Job Seeker Dashboard{% endif %}
+      </h3>
+      <p class="text-muted" style="font-size:.9rem;">
+        {% if current_user.role == 'founder' %}
+          You're registered as a Founder. In Week 2, you'll be able to list your startup (with required
+          Trade License verification) and post job openings from here.
+        {% elif current_user.role == 'investor' %}
+          You're registered as an Investor. In Week 2, you'll be able to browse verified startups and send
+          investment interest; the milestone-based funding workflow arrives in Week 3.
+        {% else %}
+          You're registered as a Job Seeker. In Week 2, you'll be able to browse open roles and apply with
+          your CV directly from here.
+        {% endif %}
+      </p>
+      <a href="{{ url_for('main.profile_edit') }}" class="btn btn-outline btn-sm" style="margin-top:.5rem;">Complete Your Profile</a>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

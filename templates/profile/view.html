@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}My Profile{% endblock %}
+{% block content %}
+<div class="glass card-pad animate-in" style="max-width:640px;margin:0 auto;">
+  <div class="flex-between">
+    <div class="flex gap-2">
+      {% if profile.photo %}<img src="{{ url_for('static', filename='uploads/' ~ profile.photo) }}" class="avatar" style="width:64px;height:64px;">
+      {% else %}<div class="avatar" style="width:64px;height:64px;background:linear-gradient(135deg,var(--blue-500),var(--green-500));"></div>{% endif %}
+      <div>
+        <h1 style="margin-bottom:.15rem;">{{ current_user.full_name }}</h1>
+        <span class="badge badge-blue">{{ current_user.role|capitalize }}</span>
+      </div>
+    </div>
+    <a href="{{ url_for('main.profile_edit') }}" class="btn btn-primary btn-sm">Edit Profile</a>
+  </div>
+
+  {% set pct = profile.completion_percent() %}
+  <div style="margin:1.2rem 0;">
+    <p class="text-muted" style="margin-bottom:.4rem;">Profile completion: <strong>{{ pct }}%</strong></p>
+    <div style="height:8px;border-radius:6px;background:rgba(128,128,128,.18);overflow:hidden;">
+      <div style="height:100%;width:{{ pct }}%;background:linear-gradient(90deg,var(--blue-500),var(--green-500));"></div>
+    </div>
+  </div>
+
+  <hr class="divider">
+  <div class="grid grid-2">
+    <div><strong>Email</strong><br><span class="text-muted">{{ current_user.email }}</span></div>
+    <div><strong>Phone</strong><br><span class="text-muted">{{ profile.phone or "—" }}</span></div>
+    <div><strong>Location</strong><br><span class="text-muted">{{ profile.location or "—" }}</span></div>
+    <div><strong>Industry</strong><br><span class="text-muted">{{ profile.industry or "—" }}</span></div>
+    <div><strong>Education</strong><br><span class="text-muted">{{ profile.education or "—" }}</span></div>
+    <div><strong>Experience</strong><br><span class="text-muted">{{ profile.experience or "—" }}</span></div>
+  </div>
+  <div style="margin-top:.8rem;"><strong>Bio</strong><br><span class="text-muted">{{ profile.bio or "—" }}</span></div>
+  <div style="margin-top:.8rem;"><strong>Skills</strong><br><span class="text-muted">{{ profile.skills or "—" }}</span></div>
+  <div style="margin-top:.8rem;"><strong>Interests</strong><br><span class="text-muted">{{ profile.interests or "—" }}</span></div>
+</div>
+{% endblock %}
