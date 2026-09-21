@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<section class="hero animate-in">
+  <h1 class="gradient-text">Connecting Ideas, People, Investment,<br>and Opportunities — Verifiably.</h1>
+  <p>VentureBridge brings Founders, Investors, and Job Seekers together on one trust-first platform.
+     This is the Week 1 foundation: accounts, secure login, and role-based dashboards.
+     Startup listings, job postings, and the investment workflow arrive in later phases.</p>
+  <div class="flex gap-2" style="justify-content:center;">
+    <a href="{{ url_for('auth.register') }}" class="btn btn-primary">Get Started</a>
+    <a href="{{ url_for('auth.login') }}" class="btn btn-outline">Log In</a>
+  </div>
+</section>
+
+<section class="grid grid-2 animate-on-scroll" style="max-width:520px;margin:2rem auto 0;">
+  <div class="glass stat-card hover-lift" style="text-align:center;">
+    <div class="stat-label">Registered Members</div>
+    <div class="stat-value">{{ stats.members }}</div>
+  </div>
+  <div class="glass stat-card hover-lift" style="text-align:center;">
+    <div class="stat-label">Roles Supported</div>
+    <div class="stat-value">4</div>
+  </div>
+</section>
+
+<section class="glass card-pad animate-on-scroll" style="margin-top:3rem;">
+  <h2>Trust is the product</h2>
+  <p class="text-muted">VentureBridge is built around one idea: when an investor looks at a startup, or a job
+     seeker looks at a founder, there should be a real verification trail behind it. This foundation phase
+     lays down secure accounts and role-based access; document verification, startup listings, and the
+     milestone-based funding workflow are built on top of it in the phases that follow.</p>
+</section>
+
+<section class="hero animate-on-scroll">
+  <h2>Create your account</h2>
+  <a href="{{ url_for('auth.register') }}" class="btn btn-primary">Join VentureBridge</a>
+</section>
+{% endblock %}
