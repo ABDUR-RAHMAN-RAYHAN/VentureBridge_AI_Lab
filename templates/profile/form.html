@@ -8,16 +8,22 @@
   </div>
 
   {% set pct = profile.completion_percent() %}
-  <div class="glass card-pad" style="margin-bottom:1rem;">
-    <p class="text-muted">Profile completion: <strong>{{ pct }}%</strong></p>
-    <div style="height:8px;border-radius:6px;background:rgba(128,128,128,.18);overflow:hidden;">
+  <div class="glass card-pad" style="margin-bottom:.4rem;">
+    <p class="text-muted">Profile completion: <strong>{{ pct }}%</strong>
+      {% if current_user.requires_identity_verification() and not current_user.is_verified() %}<span class="text-muted" style="font-size:.8rem;">(NID + Live Photo verification required for 100%)</span>{% endif %}</p>
+    <div style="height:8px;border-radius:6px;background:rgba(255,255,255,.2);overflow:hidden;">
       <div style="height:100%;width:{{ pct }}%;background:linear-gradient(90deg,var(--blue-500),var(--green-500));"></div>
     </div>
   </div>
 
+  <!-- ONE form, ONE submit button. Profile fields and identity verification
+       are saved together in a single action, so there's no way to fill in
+       both sections but accidentally only submit one of them. -->
   <form method="POST" enctype="multipart/form-data" novalidate>
     {{ form.hidden_tag() }}
-    <div class="glass card-pad">
+
+    <div class="glass card-pad" style="margin-top:1rem;">
+      <h2>Profile Information</h2>
       <div class="form-group">{{ form.photo.label }} {{ form.photo() }}
         {% for e in form.photo.errors %}<div class="form-error">{{ e }}</div>{% endfor %}</div>
       <div class="grid grid-2">
@@ -41,7 +47,70 @@
       <div class="form-group">{{ form.interests.label }} {{ form.interests(placeholder="e.g. FinTech, Climate") }}
         {% for e in form.interests.errors %}<div class="form-error">{{ e }}</div>{% endfor %}</div>
     </div>
-    <button class="btn btn-primary" style="margin-top:1.2rem;width:100%;" type="submit">Save Profile</button>
+
+    {% if current_user.requires_identity_verification() %}
+    <div class="glass card-pad" style="margin-top:1.5rem;">
+      <h2>Identity Verification</h2>
+      {% if current_user.is_verified() %}
+        <span class="badge badge-verified">✓ You're already verified</span>
+        <p class="text-muted" style="margin-top:.6rem;font-size:.9rem;">You can submit again below if you need to update your documents.</p>
+      {% else %}
+        <p class="text-muted">Required to reach 100% profile completion. Both steps below are needed together.</p>
+      {% endif %}
+
+      <hr class="divider">
+      <h3 style="margin-bottom:.4rem;">1. Upload NID / ID Card</h3>
+      <div class="form-group">
+        {{ verification_form.doc_type.label }} {{ verification_form.doc_type() }}
+      </div>
+      <div class="form-group">
+        {{ verification_form.id_document.label }} {{ verification_form.id_document() }}
+        <div class="form-hint">Upload a clear photo or scan of your National ID, Passport, or Driving License. PDF, PNG, or JPG.</div>
+      </div>
+
+      <hr class="divider">
+      <h3 style="margin-bottom:.4rem;">2. Live Photo</h3>
+      <p class="text-muted" style="font-size:.88rem;">Capture <strong>3 live photos</strong> right now using your
+        camera — uploading a pre-existing image file is not accepted here, to help prevent impersonation.</p>
+
+      <div id="camStartArea">
+        <button type="button" class="btn btn-primary" id="camStartBtn" onclick="vbWebcam.startCamera()">📷 Start Live Photo Capture</button>
+        <p class="text-muted" id="camStatus" style="margin-top:.5rem;">Camera access is required for live verification.</p>
+      </div>
+
+      <div id="camLiveArea" style="display:none;">
+        <div class="webcam-box" style="max-width:420px;">
+          <video id="camVideo" autoplay playsinline muted></video>
+        </div>
+        <p class="text-muted" id="poseInstruction" style="font-weight:600;margin:.6rem 0 .3rem;">Live Photo 1 of 3 — Look straight ahead (front-facing)</p>
+        <div class="grid grid-3" style="margin-top:.5rem;">
+          {% for slot in [1,2,3] %}
+          <div>
+            <div id="placeholder{{ slot }}" class="photo-slot-empty">Live Photo — {{ ["Front", "Turn Left", "Turn Right"][slot-1] }}</div>
+            <img id="preview{{ slot }}" class="photo-slot" style="display:none;">
+            <div class="flex gap-1" style="margin-top:.4rem;">
+              <button type="button" class="btn btn-outline btn-sm" onclick="vbWebcam.capturePhoto({{ slot }})">Capture</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="vbWebcam.retake({{ slot }})">Retake</button>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      {{ verification_form.photo_1(id="photo_1") }}
+      {{ verification_form.photo_2(id="photo_2") }}
+      {{ verification_form.photo_3(id="photo_3") }}
+      <p class="text-muted" style="font-size:.8rem;margin-top:.6rem;">Both the NID upload and all 3 live photos
+        are needed to submit verification. If you only fill in the profile fields above, that's fine too — just
+        click Save below and verification stays for later.</p>
+    </div>
+    {% endif %}
+
+    <button class="btn btn-primary" style="margin-top:1.5rem;width:100%;" type="submit">Save Profile</button>
   </form>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/webcam.js') }}"></script>
 {% endblock %}

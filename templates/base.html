@@ -20,8 +20,14 @@
   </a>
   <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">&#9776;</button>
   <div class="nav-links" id="navLinks">
+    <a href="{{ url_for('startups.list_startups') }}" class="{{ 'active' if request.blueprint == 'startups' }}">Startups</a>
+    <a href="{{ url_for('jobs.list_jobs') }}" class="{{ 'active' if request.blueprint == 'jobs' }}">Jobs</a>
+    {% if current_user.is_authenticated and current_user.role == 'founder' %}
+      <a href="{{ url_for('investment.browse_investors') }}" class="{{ 'active' if request.endpoint in ['investment.browse_investors', 'investment.send_founder_request'] }}">Investors</a>
+    {% endif %}
     {% if current_user.is_authenticated %}
       <a href="{{ url_for('main.dashboard') }}" class="{{ 'active' if request.endpoint == 'main.dashboard' }}">Dashboard</a>
+      <a href="{{ url_for('messaging.inbox') }}" class="{{ 'active' if request.blueprint == 'messaging' }}">Messages</a>
       <a href="{{ url_for('main.profile') }}" class="{{ 'active' if request.endpoint in ['main.profile', 'main.profile_edit'] }}">Profile</a>
       <a href="{{ url_for('auth.logout') }}" class="btn btn-outline btn-sm">Logout</a>
     {% else %}

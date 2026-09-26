@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Submit Financial Proposal{% endblock %}
+{% block content %}
+<div class="glass card-pad animate-in" style="max-width:680px;margin:0 auto;">
+  <h1>{{ "Respond to Funding Request" if equity_flow else "Financial Distribution Proposal" }}</h1>
+  <p class="text-muted">For <strong>{{ req.investor.full_name }}</strong>'s {{ "funding request for" if equity_flow else "interest in" }} <strong>{{ req.startup.name }}</strong></p>
+  <div class="alert alert-info">"{{ req.message }}"</div>
+
+  {% if equity_flow %}
+  <div class="alert alert-warning">
+    Send back the amount and equity/share percentage you're offering. The investor will review this and can
+    either accept it or send back their own changes.
+  </div>
+  <form method="POST" novalidate>
+    {{ form.hidden_tag() }}
+    <div class="form-group">{{ form.total_amount.label }} {{ form.total_amount(step="0.01") }}</div>
+    <div class="form-group">{{ form.equity_percent.label }} {{ form.equity_percent(step="0.01", min="0.01", max="100") }}</div>
+    <div class="form-group">{{ form.notes.label }} {{ form.notes(rows=3, placeholder="Any context for this counter-offer") }}</div>
+    <button class="btn btn-green" style="margin-top:1rem;" type="submit">Send to Investor</button>
+  </form>
+  {% else %}
+  <div class="alert alert-warning">
+    Before anything is finalized, lay out exactly how much money you need and what it's for.
+    The investor will review this and can either accept it or send back changes.
+  </div>
+
+  <form method="POST" id="proposalForm" novalidate>
+    {{ form.hidden_tag() }}
+    <div class="form-group">{{ form.total_amount.label }} {{ form.total_amount(id="totalAmount", step="0.01") }}</div>
+    <div class="form-group">{{ form.notes.label }} {{ form.notes(rows=3, placeholder="Why do you need this funding overall? What stage is this for?") }}</div>
+
+    <label>Breakdown — what the money is for (must add up to the total above)</label>
+    <div id="itemRows"></div>
+    <button type="button" class="btn btn-outline btn-sm" onclick="addItemRow()">+ Add Line Item</button>
+    <p class="form-hint">Breakdown total: $<span id="itemTotal">0.00</span> / $<span id="targetTotal">0.00</span></p>
+
+    {{ form.items_json() }}
+    <button class="btn btn-green" style="margin-top:1rem;" type="submit">Send Proposal to Investor</button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if not equity_flow %}
+<script>
+function addItemRow(reason="", amount=""){
+  const div = document.createElement("div");
+  div.className = "milestone-row glass card-pad";
+  div.style.padding = ".8rem";
+  div.innerHTML = `
+    <input type="text" placeholder="What is this money for? (e.g. Prototype components)" class="i-reason" value="${reason}">
+    <input type="number" placeholder="Amount ($)" class="i-amount" step="0.01" value="${amount}">
+    <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove(); syncItems();">✕</button>
+  `;
+  document.getElementById("itemRows").appendChild(div);
+  div.querySelectorAll("input").forEach(i => i.addEventListener("input", syncItems));
+}
+
+function syncItems(){
+  const rows = document.querySelectorAll("#itemRows .milestone-row");
+  const data = [];
+  let total = 0;
+  rows.forEach(r => {
+    const reason = r.querySelector(".i-reason").value;
+    const amount = parseFloat(r.querySelector(".i-amount").value) || 0;
+    if (reason && amount) { data.push({reason, amount}); total += amount; }
+  });
+  document.getElementById("{{ form.items_json.id }}").value = JSON.stringify(data);
+  document.getElementById("itemTotal").textContent = total.toFixed(2);
+  document.getElementById("targetTotal").textContent = (parseFloat(document.getElementById("totalAmount").value) || 0).toFixed(2);
+}
+
+document.getElementById("totalAmount").addEventListener("input", syncItems);
+addItemRow();
+</script>
+{% endif %}
+{% endblock %}

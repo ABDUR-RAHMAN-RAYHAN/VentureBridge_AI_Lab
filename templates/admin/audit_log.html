@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Audit Log{% endblock %}
+{% block content %}
+<div class="animate-in">
+  <h1>Audit Log</h1>
+  <p class="text-muted">Every security-relevant action is recorded here: logins, registrations, verification
+    decisions, investment accept/reject, application status changes, document approvals, and more.</p>
+  <div class="glass card-pad table-wrap">
+    <table>
+      <thead><tr><th>When</th><th>User</th><th>Action</th><th>Details</th><th>IP</th></tr></thead>
+      <tbody>
+        {% for l in logs %}
+        <tr>
+          <td>{{ l.created_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+          <td>{{ l.actor.full_name if l.actor else "—" }}</td>
+          <td><span class="badge badge-blue">{{ l.action }}</span></td>
+          <td style="max-width:280px;">{{ l.details or "—" }}</td>
+          <td>{{ l.ip_address or "—" }}</td>
+        </tr>
+        {% else %}<tr><td colspan="5" class="text-muted">No entries yet.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if pagination and pagination.pages > 1 %}
+  <div class="pagination">
+    {% for p in range(1, pagination.pages+1) %}
+      <a href="{{ url_for('admin.audit_log', page=p) }}" class="{{ 'active' if p == pagination.page else '' }}">{{ p }}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

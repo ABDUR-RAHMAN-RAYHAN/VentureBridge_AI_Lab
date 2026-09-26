@@ -11,7 +11,11 @@
       {% for e in form.full_name.errors %}<div class="form-error">{{ e }}</div>{% endfor %}
     </div>
     <div class="form-group">
-      {{ form.email.label }} {{ form.email(placeholder="you@example.com") }}
+      {{ form.email.label }} {{ form.email(placeholder="you@" ~ (allowed_domains[0] if allowed_domains else "example.com")) }}
+      {% if allowed_domains and "*" not in allowed_domains %}
+      <div class="form-hint">Accounts can only be created with an address from:
+        {% for d in allowed_domains %}<strong>@{{ d }}</strong>{% if not loop.last %}, {% endif %}{% endfor %}.</div>
+      {% endif %}
       {% for e in form.email.errors %}<div class="form-error">{{ e }}</div>{% endfor %}
     </div>
     <div class="form-group">

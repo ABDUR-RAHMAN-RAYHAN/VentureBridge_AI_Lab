@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}My Investment Requests{% endblock %}
+{% block content %}
+<div class="animate-in">
+  <h1>My Investment Interest Requests</h1>
+  <div class="grid grid-2">
+    {% for r in reqs %}
+    <div class="glass card-pad hover-lift">
+      <div class="flex-between">
+        <strong>{{ r.startup.name }}</strong>
+        {% set colors = {"pending":"badge-pending","awaiting_investor_review":"badge-pending","awaiting_founder_review":"badge-pending",
+                          "milestones_setup":"badge-pending","awaiting_signatures":"badge-pending","active":"badge-verified","rejected":"badge-rejected"} %}
+        {% set labels = {"pending":"Awaiting Founder","awaiting_investor_review":"Founder Sent Proposal","awaiting_founder_review":"Awaiting Founder Review",
+                          "milestones_setup":"Awaiting Milestones","awaiting_signatures":"Awaiting Signatures","active":"Active","rejected":"Rejected"} %}
+        <span class="badge {{ colors[r.status] }}">{{ labels[r.status] }}</span>
+      </div>
+      <span class="text-muted" style="font-size:.85rem;">Sent {{ r.created_at.strftime("%Y-%m-%d") }}</span>
+      <p style="margin:.6rem 0;">{{ r.message }}</p>
+
+      {% if r.status == 'awaiting_investor_review' %}
+        <a href="{{ url_for('investment.view_proposal', req_id=r.id) }}" class="btn btn-green btn-sm">Review Founder's Proposal</a>
+      {% elif r.status == 'awaiting_founder_review' %}
+        <a href="{{ url_for('investment.view_proposal', req_id=r.id) }}" class="btn btn-outline btn-sm">View Your Changes</a>
+      {% elif r.status == 'milestones_setup' %}
+        <span class="text-muted" style="font-size:.85rem;">Waiting for the founder to set up milestones.</span>
+      {% elif r.status == 'awaiting_signatures' %}
+        <a href="{{ url_for('investment.sign_agreement', req_id=r.id) }}" class="btn btn-green btn-sm">Sign Agreement</a>
+      {% elif r.status == 'active' %}
+        <a href="{{ url_for('investment.agreement', req_id=r.id) }}" class="btn btn-outline btn-sm">View Agreement</a>
+      {% endif %}
+    </div>
+    {% else %}<p class="text-muted">You haven't sent any investment interest yet. <a href="{{ url_for('startups.list_startups') }}">Browse startups</a>.</p>{% endfor %}
+  </div>
+</div>
+{% endblock %}
