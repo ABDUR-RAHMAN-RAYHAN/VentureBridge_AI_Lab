@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}{{ "Edit" if mode == "edit" else "List a Startup" }}{% endblock %}
+{% block content %}
+<div class="glass card-pad animate-in" style="max-width:620px;margin:0 auto;">
+  <h1>{{ "Edit Startup" if mode == "edit" else "List Your Startup" }}</h1>
+  {% if mode == "create" %}
+  <div class="alert alert-info">A Trade License upload is required to publish your startup. It will show as
+    "Pending Document Review" until an admin approves it.</div>
+  {% endif %}
+  <form method="POST" enctype="multipart/form-data" novalidate>
+    {{ form.hidden_tag() }}
+    <div class="form-group">{{ form.name.label }} {{ form.name() }}</div>
+    <div class="form-group">{{ form.logo.label }} {{ form.logo() }}</div>
+    <div class="form-group">{{ form.description.label }} {{ form.description(rows=4) }}</div>
+    <div class="grid grid-2">
+      <div class="form-group">{{ form.industry.label }} {{ form.industry() }}</div>
+      <div class="form-group">{{ form.stage.label }} {{ form.stage() }}</div>
+    </div>
+    <div class="grid grid-2">
+      <div class="form-group">{{ form.location.label }} {{ form.location() }}</div>
+      <div class="form-group">{{ form.website.label }} {{ form.website(placeholder="https://...") }}</div>
+    </div>
+    <div class="grid grid-2">
+      <div class="form-group">{{ form.founded_year.label }} {{ form.founded_year() }}</div>
+      <div class="form-group">{{ form.team_size.label }} {{ form.team_size() }}</div>
+    </div>
+    <div class="form-group">{{ form.business_model.label }} {{ form.business_model() }}</div>
+    {% if mode == "create" %}
+    <div class="form-group">{{ form.trade_license.label }} {{ form.trade_license() }}
+      <div class="form-hint">Required — PDF, PNG, or JPG.</div>
+    </div>
+    {% endif %}
+    <button class="btn btn-primary" type="submit">{{ "Save Changes" if mode == "edit" else "Publish Startup" }}</button>
+  </form>
+</div>
+{% endblock %}

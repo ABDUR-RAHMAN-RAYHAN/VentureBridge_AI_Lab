@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ job.title }}{% endblock %}
+{% block content %}
+<div class="glass card-pad animate-in" style="max-width:720px;margin:0 auto;">
+  <div class="flex-between flex-wrap gap-2">
+    <div>
+      <h1 style="margin-bottom:.2rem;">{{ job.title }}</h1>
+      <a href="{{ url_for('startups.detail', startup_id=job.startup.id) }}" class="text-muted">{{ job.startup.name }}</a>
+    </div>
+    <span class="badge {{ 'badge-verified' if job.status == 'open' else 'badge-rejected' }}">{{ job.status|capitalize }}</span>
+  </div>
+  <div class="flex gap-1 flex-wrap" style="margin:1rem 0;">
+    <span class="badge badge-blue">{{ job.job_type }}</span>
+    <span class="badge badge-outline">{{ job.location }}</span>
+    {% if job.experience_level %}<span class="badge badge-outline">{{ job.experience_level }}</span>{% endif %}
+    {% if job.salary_min %}<span class="badge badge-outline">${{ job.salary_min }} - ${{ job.salary_max }}</span>{% endif %}
+  </div>
+  <p>{{ job.description }}</p>
+  <p><strong>Required Skills:</strong> {{ job.required_skills or "—" }}</p>
+  {% if job.deadline %}<p><strong>Deadline:</strong> {{ job.deadline.strftime("%Y-%m-%d") }}</p>{% endif %}
+
+  {% if current_user.is_authenticated and current_user.role == 'founder' and current_user.id == job.startup.founder_id %}
+    <div class="flex gap-1">
+      <a href="{{ url_for('jobs.applications', job_id=job.id) }}" class="btn btn-outline btn-sm">View Applications</a>
+      <form method="POST" action="{{ url_for('jobs.toggle_status', job_id=job.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-outline btn-sm" type="submit">{{ "Close Job" if job.status == "open" else "Reopen Job" }}</button>
+      </form>
+    </div>
+  {% elif current_user.is_authenticated and current_user.role == 'jobseeker' %}
+    {% if already_applied %}
+      <span class="badge badge-pending">You already applied</span>
+    {% elif job.status != 'open' %}
+      <span class="badge badge-rejected">Applications closed</span>
+    {% else %}
+      <hr class="divider">
+      <h3>Apply Now</h3>
+      <form method="POST" action="{{ url_for('jobs.apply', job_id=job.id) }}" enctype="multipart/form-data" novalidate>
+        {{ app_form.hidden_tag() }}
+        <div class="form-group">{{ app_form.cv.label }} {{ app_form.cv() }}<div class="form-hint">Required — PDF/DOC/DOCX.</div></div>
+        <div class="form-group">{{ app_form.cover_message.label }} {{ app_form.cover_message(rows=4) }}</div>
+        <button class="btn btn-primary" type="submit">Submit Application</button>
+      </form>
+    {% endif %}
+  {% elif not current_user.is_authenticated %}
+    <p><a href="{{ url_for('auth.login') }}">Log in</a> as a Job Seeker to apply.</p>
+  {% endif %}
+</div>
+{% endblock %}

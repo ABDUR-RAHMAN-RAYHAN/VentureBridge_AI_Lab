@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Chat with {{ other.full_name }}{% endblock %}
+{% block content %}
+<div class="animate-in" style="max-width:640px;margin:0 auto;">
+  <a href="{{ url_for('messaging.inbox') }}" class="btn btn-outline btn-sm" style="margin-bottom:1rem;">← Inbox</a>
+  <div class="glass card-pad">
+    <h2 style="margin-bottom:1rem;">{{ other.full_name }} <span class="badge badge-outline">{{ other.role|capitalize }}</span></h2>
+    <div style="max-height:420px;overflow-y:auto;display:flex;flex-direction:column;margin-bottom:1rem;">
+      {% for m in messages %}
+        <div class="chat-bubble {{ 'chat-mine' if m.sender_id == current_user.id else 'chat-theirs' }}">
+          {{ m.body }}
+          <div class="chat-meta">{{ m.created_at.strftime("%b %d, %H:%M") }}</div>
+        </div>
+      {% else %}
+        <p class="text-muted">No messages yet. Say hello!</p>
+      {% endfor %}
+    </div>
+    <form method="POST" class="flex gap-1" novalidate>
+      {{ form.hidden_tag() }}
+      {{ form.body(rows=2, placeholder="Type a message...", style="flex:1;") }}
+      <button class="btn btn-primary" type="submit">Send</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

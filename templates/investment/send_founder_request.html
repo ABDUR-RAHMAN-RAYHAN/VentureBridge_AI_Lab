@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Send Funding Request{% endblock %}
+{% block content %}
+<div class="glass card-pad animate-in" style="max-width:640px;margin:0 auto;">
+  <h1>Send Funding Request</h1>
+  <p class="text-muted">To <strong>{{ investor.full_name }}</strong></p>
+
+  <form method="POST" novalidate>
+    {{ form.hidden_tag() }}
+    <div class="form-group">{{ form.startup_id.label }} {{ form.startup_id() }}
+      {% for e in form.startup_id.errors %}<div class="form-error">{{ e }}</div>{% endfor %}</div>
+    <div class="grid grid-2">
+      <div class="form-group">{{ form.total_amount.label }} {{ form.total_amount(step="0.01", placeholder="e.g. 50000") }}
+        {% for e in form.total_amount.errors %}<div class="form-error">{{ e }}</div>{% endfor %}</div>
+      <div class="form-group">{{ form.equity_percent.label }} {{ form.equity_percent(step="0.01", min="0.01", max="100", placeholder="e.g. 5") }}
+        {% for e in form.equity_percent.errors %}<div class="form-error">{{ e }}</div>{% endfor %}</div>
+    </div>
+    <div class="form-group">{{ form.message.label }} {{ form.message(rows=4, placeholder="Introduce your startup and why this investor is a good fit.") }}
+      {% for e in form.message.errors %}<div class="form-error">{{ e }}</div>{% endfor %}</div>
+
+    <button class="btn btn-primary" style="margin-top:1rem;width:100%;" type="submit">Send Request</button>
+  </form>
+</div>
+{% endblock %}

@@ -16,3 +16,12 @@ def roles_required(*roles):
             return f(*args, **kwargs)
         return wrapped
     return decorator
+
+
+def active_account_required(f):
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        if current_user.is_authenticated and not current_user.is_active_account:
+            abort(403)
+        return f(*args, **kwargs)
+    return wrapped

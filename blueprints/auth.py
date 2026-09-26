@@ -3,16 +3,22 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_user, logout_user, login_required, current_user
 from extensions import db
 from models import User, Profile, LoginAttempt, PasswordReset
-from forms import RegisterForm, LoginForm, ForgotPasswordForm, ResetPasswordForm
+from forms import (RegisterForm, LoginForm, ForgotPasswordForm, ResetPasswordForm,
+                    allowed_email_domains)
+from utils import log_action
 from config import Config
 
 bp = Blueprint("auth", __name__)
 
 
+def _dashboard_for(user):
+    return url_for("main.dashboard")
+
+
 @bp.route("/register", methods=["GET", "POST"])
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for("main.dashboard"))
+        return redirect(_dashboard_for(current_user))
     form = RegisterForm()
     if form.validate_on_submit():
         user = User(
@@ -26,18 +32,21 @@ def register():
         db.session.add(Profile(user_id=user.id))
         db.session.commit()
 
-        # Regenerate session on registration to prevent session fixation
+        # Regenerate session on registration to prevent fixation
         session.clear()
         login_user(user)
+        session["_fresh_id"] = user.id
+        log_action("register", f"New {user.role} account created", user_id=user.id)
         flash("Welcome to VentureBridge! Your account has been created.", "success")
-        return redirect(url_for("main.dashboard"))
-    return render_template("auth/register.html", form=form)
+        return redirect(_dashboard_for(user))
+    return render_template("auth/register.html", form=form,
+                            allowed_domains=allowed_email_domains())
 
 
 @bp.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for("main.dashboard"))
+        return redirect(_dashboard_for(current_user))
     form = LoginForm()
     if form.validate_on_submit():
         email = form.email.data.lower().strip()
@@ -64,6 +73,7 @@ def login():
 
         if not success:
             flash("Invalid email or password.", "danger")
+            log_action("login_failed", f"email={email}")
             return render_template("auth/login.html", form=form)
 
         if not user.is_active_account:
@@ -73,15 +83,18 @@ def login():
         # Regenerate session on login to prevent session fixation
         session.clear()
         login_user(user)
+        session["_fresh_id"] = user.id
+        log_action("login_success", user_id=user.id)
         flash(f"Welcome back, {user.full_name}!", "success")
         next_page = request.args.get("next")
-        return redirect(next_page or url_for("main.dashboard"))
+        return redirect(next_page or _dashboard_for(user))
     return render_template("auth/login.html", form=form)
 
 
 @bp.route("/logout")
 @login_required
 def logout():
+    log_action("logout")
     logout_user()
     session.clear()
     flash("You have been logged out.", "info")
@@ -98,6 +111,7 @@ def forgot_password():
             pr = PasswordReset.create_for(user.id)
             db.session.commit()
             reset_link = url_for("auth.reset_password", token=pr.token, _external=True)
+            log_action("password_reset_requested", user_id=user.id)
         flash("If that email exists, a reset link has been generated below "
               "(shown directly since no email server is configured in this demo).", "info")
     return render_template("auth/forgot_password.html", form=form, reset_link=reset_link)
@@ -116,6 +130,7 @@ def reset_password(token):
         user.set_password(form.password.data)
         pr.used = True
         db.session.commit()
+        log_action("password_reset_completed", user_id=user.id)
         flash("Your password has been reset. Please log in.", "success")
         return redirect(url_for("auth.login"))
     return render_template("auth/reset_password.html", form=form)

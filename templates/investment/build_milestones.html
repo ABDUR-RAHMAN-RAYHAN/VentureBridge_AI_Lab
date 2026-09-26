@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Set Up Milestones{% endblock %}
+{% block content %}
+<div class="glass card-pad animate-in" style="max-width:680px;margin:0 auto;">
+  <h1>Set Up the Milestone Schedule</h1>
+  <p class="text-muted">Terms are agreed at <strong>${{ "%.2f"|format(proposal.total_amount) }}</strong> for {{ req.startup.name }}.
+    Break that amount into milestones — the admin releases each one individually as it's reached.</p>
+
+  <form method="POST" id="agreementForm" novalidate>
+    {{ form.hidden_tag() }}
+    <div class="form-group">{{ form.benefit_terms.label }} {{ form.benefit_terms(rows=3, placeholder="e.g. 8% equity stake, or 5% revenue share for 3 years") }}</div>
+
+    <label>Funding Milestones (must add up to ${{ "%.2f"|format(proposal.total_amount) }})</label>
+
+    <div class="glass card-pad" style="padding:1rem;margin-bottom:1rem;">
+      <div class="flex gap-2 flex-wrap" style="align-items:flex-end;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="font-size:.8rem;">Number of milestones</label>
+          <select id="cspCount" style="width:100px;">
+            {% for n in range(2, 9) %}<option value="{{ n }}" {% if n==4 %}selected{% endif %}>{{ n }}</option>{% endfor %}
+          </select>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" onclick="generateWithCSP()">🧩 Auto-Generate with CSP Solver</button>
+        <span class="text-muted" style="font-size:.78rem;">Uses backtracking search to split the total into valid amounts (10%–50% of total each). You can still rename and edit afterward.</span>
+      </div>
+      <div id="cspError" class="form-error" style="display:none;margin-top:.5rem;"></div>
+    </div>
+
+    <div id="milestoneRows"></div>
+    <button type="button" class="btn btn-outline btn-sm" onclick="addMilestoneRow()">+ Add Milestone Manually</button>
+    <p class="form-hint">Milestone total: $<span id="milestoneTotal">0.00</span> / $<span id="targetTotal">{{ "%.2f"|format(proposal.total_amount) }}</span></p>
+
+    {{ form.milestone_titles() }}
+    <button class="btn btn-green" style="margin-top:1rem;" type="submit">Generate Agreement</button>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function addMilestoneRow(title="", amount="", desc=""){
+  const div = document.createElement("div");
+  div.className = "milestone-row glass card-pad";
+  div.style.padding = ".8rem";
+  div.innerHTML = `
+    <input type="text" placeholder="Milestone title" class="m-title" value="${title}">
+    <input type="number" placeholder="Amount ($)" class="m-amount" step="0.01" value="${amount}">
+    <input type="text" placeholder="Description (optional)" class="m-desc" value="${desc}">
+    <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove(); syncMilestones();">✕</button>
+  `;
+  document.getElementById("milestoneRows").appendChild(div);
+  div.querySelectorAll("input").forEach(i => i.addEventListener("input", syncMilestones));
+}
+
+function syncMilestones(){
+  const rows = document.querySelectorAll("#milestoneRows .milestone-row");
+  const data = [];
+  let total = 0;
+  rows.forEach(r => {
+    const title = r.querySelector(".m-title").value;
+    const amount = parseFloat(r.querySelector(".m-amount").value) || 0;
+    const desc = r.querySelector(".m-desc").value;
+    if (title && amount) { data.push({title, amount, description: desc}); total += amount; }
+  });
+  document.getElementById("{{ form.milestone_titles.id }}").value = JSON.stringify(data);
+  document.getElementById("milestoneTotal").textContent = total.toFixed(2);
+}
+
+addMilestoneRow();
+
+async function generateWithCSP(){
+  const count = document.getElementById("cspCount").value;
+  const errEl = document.getElementById("cspError");
+  errEl.style.display = "none";
+  try {
+    const resp = await fetch(`{{ url_for('investment.csp_generate_milestones', req_id=req.id) }}?count=${count}`);
+    const data = await resp.json();
+    if (!data.ok) {
+      errEl.textContent = data.error;
+      errEl.style.display = "block";
+      return;
+    }
+    document.getElementById("milestoneRows").innerHTML = "";
+    data.amounts.forEach((amt, i) => addMilestoneRow(`Milestone ${i + 1}`, amt, ""));
+    syncMilestones();
+  } catch (e) {
+    errEl.textContent = "Could not reach the solver. Try again.";
+    errEl.style.display = "block";
+  }
+}
+</script>
+{% endblock %}

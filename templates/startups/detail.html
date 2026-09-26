@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}{{ startup.name }}{% endblock %}
+{% block content %}
+<div class="glass card-pad animate-in">
+  <div class="flex-between flex-wrap gap-2">
+    <div class="flex gap-2">
+      {% if startup.logo %}<img src="{{ url_for('static', filename='uploads/' ~ startup.logo) }}" class="startup-logo" style="width:70px;height:70px;">
+      {% else %}<div class="startup-logo" style="width:70px;height:70px;background:linear-gradient(135deg,var(--blue-500),var(--green-500));"></div>{% endif %}
+      <div>
+        <h1 style="margin-bottom:.2rem;">{{ startup.name }}</h1>
+        <span class="text-muted">{{ startup.industry }} · {{ startup.location }} · Founded {{ startup.founded_year or "—" }}</span>
+      </div>
+    </div>
+    {% if current_user.is_authenticated and current_user.id == startup.founder_id %}
+      <div class="flex gap-1">
+        <a href="{{ url_for('startups.edit', startup_id=startup.id) }}" class="btn btn-outline btn-sm">Edit</a>
+        <a href="{{ url_for('startups.documents', startup_id=startup.id) }}" class="btn btn-outline btn-sm">Documents</a>
+        <a href="{{ url_for('jobs.create', startup_id=startup.id) }}" class="btn btn-primary btn-sm">+ Post Job</a>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="flex gap-1 flex-wrap" style="margin:1rem 0;">
+    <span class="badge badge-blue">{{ startup.stage }}</span>
+    {% if startup.document_status == 'approved' %}<span class="badge badge-verified">✓ Documents Verified</span>
+    {% elif startup.document_status == 'rejected' %}<span class="badge badge-rejected">Documents Rejected</span>
+    {% else %}<span class="badge badge-pending">Pending Document Review</span>{% endif %}
+    {% if startup.founder.is_verified() %}<span class="badge badge-verified">✓ Founder Verified</span>{% endif %}
+    {% if not startup.is_active %}<span class="badge badge-rejected">Deactivated</span>{% endif %}
+  </div>
+
+  <p>{{ startup.description }}</p>
+  <div class="grid grid-2" style="margin-top:1rem;">
+    <div><strong>Business Model:</strong> {{ startup.business_model or "—" }}</div>
+    <div><strong>Team Size:</strong> {{ startup.team_size or "—" }}</div>
+    <div><strong>Website:</strong> {% if startup.website %}<a href="{{ startup.website }}" target="_blank" rel="noopener">{{ startup.website }}</a>{% else %}—{% endif %}</div>
+  </div>
+
+  <hr class="divider">
+  <h3 style="margin-bottom:.6rem;">Founder</h3>
+  <div class="flex gap-2" style="align-items:center;">
+    {% if startup.founder.profile and startup.founder.profile.photo %}
+      <img src="{{ url_for('static', filename='uploads/' ~ startup.founder.profile.photo) }}" class="avatar" style="width:48px;height:48px;">
+    {% else %}<div class="avatar" style="width:48px;height:48px;background:linear-gradient(135deg,var(--blue-500),var(--green-500));"></div>{% endif %}
+    <div>
+      <strong>{{ startup.founder.full_name }}</strong>
+      {% if startup.founder.is_verified() %}<span class="badge badge-verified" style="margin-left:.3rem;">✓ Verified</span>{% endif %}<br>
+      {% if current_user.is_authenticated %}
+        <span class="text-muted" style="font-size:.88rem;">{{ startup.founder.email }}</span>
+      {% else %}
+        <span class="text-muted" style="font-size:.85rem;"><a href="{{ url_for('auth.login') }}">Log in</a> to view contact email</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <hr class="divider">
+  <div class="flex gap-2 flex-wrap">
+    {% if current_user.is_authenticated and current_user.role == 'investor' %}
+      {% if already_requested %}
+        <span class="badge badge-pending">Interest already sent</span>
+      {% elif not current_user.is_verified() %}
+        <span class="text-muted" style="font-size:.85rem;">
+          <a href="{{ url_for('main.profile_edit') }}">Complete identity verification</a> before sending investment interest.
+        </span>
+      {% else %}
+        <button class="btn btn-primary" onclick="document.getElementById('investForm').style.display='block'">Express Investment Interest</button>
+      {% endif %}
+    {% endif %}
+    {% if current_user.is_authenticated and current_user.id != startup.founder_id and is_connected %}
+      <a href="{{ url_for('messaging.inbox') }}" class="btn btn-outline">Message Founder</a>
+    {% elif current_user.is_authenticated and current_user.id != startup.founder_id %}
+      <span class="text-muted" style="font-size:.85rem;">Messaging unlocks once you're connected (e.g. after an accepted investment request).</span>
+    {% endif %}
+  </div>
+
+  {% if current_user.is_authenticated and current_user.role == 'investor' and not already_requested and current_user.is_verified() %}
+  <form id="investForm" method="POST" action="{{ url_for('investment.send_request', startup_id=startup.id) }}" style="display:none;margin-top:1rem;">
+    {{ req_form.hidden_tag() }}
+    <div class="form-group">{{ req_form.message.label }} {{ req_form.message(rows=3, placeholder="Why are you interested in this startup?") }}</div>
+    <button class="btn btn-primary" type="submit">Send Interest</button>
+  </form>
+  {% endif %}
+</div>
+
+<div style="margin-top:1.5rem;">
+  <h2>Open Positions</h2>
+  <div class="grid grid-2">
+    {% for j in startup.jobs if j.status == 'open' %}
+    <div class="glass card-pad hover-lift">
+      <strong>{{ j.title }}</strong><br>
+      <span class="text-muted" style="font-size:.85rem;">{{ j.job_type }} · {{ j.location }}</span>
+      <p class="text-muted" style="font-size:.85rem;">{{ j.description[:90] }}…</p>
+      <a href="{{ url_for('jobs.detail', job_id=j.id) }}" class="btn btn-outline btn-sm">View & Apply</a>
+    </div>
+    {% else %}<p class="text-muted">No open positions right now.</p>{% endfor %}
+  </div>
+</div>
+
+{% if similar %}
+<div style="margin-top:2rem;">
+  <h2>Similar Startups</h2>
+  <p class="text-muted" style="font-size:.85rem;margin-top:-.5rem;">Recommended by a K-Nearest Neighbors match on
+    industry, stage, team size, and founding year.</p>
+  <div class="grid grid-3">
+    {% for s, score in similar %}
+    <div class="glass card-pad hover-lift">
+      <div class="flex-between">
+        <strong>{{ s.name }}</strong>
+        <span class="badge badge-blue">{{ (score * 100)|round|int }}% match</span>
+      </div>
+      <span class="text-muted" style="font-size:.82rem;">{{ s.industry }} · {{ s.stage }}</span>
+      <p class="text-muted" style="margin:.6rem 0;font-size:.85rem;">{{ s.description[:90] }}…</p>
+      <a href="{{ url_for('startups.detail', startup_id=s.id) }}" class="btn btn-outline btn-sm">View Profile</a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}
