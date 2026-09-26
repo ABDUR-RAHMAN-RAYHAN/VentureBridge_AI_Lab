@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Verification Queue{% endblock %}
+{% block content %}
+<div class="animate-in">
+  <h1>Identity Verification Review Queue</h1>
+  {% for v in pending %}
+  <div class="glass card-pad" style="margin-bottom:1.5rem;">
+    <div class="flex-between">
+      <div>
+        <strong>{{ v.user.full_name }}</strong> ({{ v.user.email }}) — {{ v.user.role|capitalize }}<br>
+        <span class="text-muted" style="font-size:.85rem;">Document type: {{ v.doc_type }} · Submitted {{ v.submitted_at.strftime("%Y-%m-%d %H:%M") }}</span>
+      </div>
+      <span class="badge badge-pending">Pending</span>
+    </div>
+    <div class="flex gap-2 flex-wrap" style="margin:1rem 0;align-items:center;">
+      {% if v.id_document_filename %}
+      <a href="{{ url_for('static', filename='uploads/' ~ v.id_document_filename) }}" target="_blank" class="btn btn-outline btn-sm">📄 View NID/ID Document</a>
+      {% else %}<span class="text-muted" style="font-size:.85rem;">No NID document on file (legacy submission).</span>{% endif %}
+    </div>
+    <div class="grid grid-3" style="margin:1rem 0;">
+      {% for p in v.photos|sort(attribute='slot') %}
+      <img src="{{ url_for('static', filename='uploads/' ~ p.filename) }}" class="photo-slot" alt="Live photo {{ p.slot }}">
+      {% endfor %}
+    </div>
+    <form method="POST" action="{{ url_for('admin.decide_verification', v_id=v.id) }}" class="flex gap-2 flex-wrap" novalidate
+          onsubmit="return document.getElementById('decision_{{v.id}}').value ? true : (alert('Choose Approve or Reject'), false);">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="decision" id="decision_{{v.id}}" value="">
+      <input type="text" name="reason" placeholder="Reason (required if rejecting)" style="flex:1;min-width:220px;">
+      <button type="submit" class="btn btn-green btn-sm" onclick="document.getElementById('decision_{{v.id}}').value='approved';">Approve</button>
+      <button type="submit" class="btn btn-danger btn-sm" onclick="document.getElementById('decision_{{v.id}}').value='rejected';">Reject</button>
+    </form>
+  </div>
+  {% else %}
+  <p class="text-muted">No pending verification submissions.</p>
+  {% endfor %}
+</div>
+{% endblock %}
