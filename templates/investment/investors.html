@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Investors{% endblock %}
+{% block content %}
+<div class="animate-in">
+  <div class="flex-between flex-wrap gap-2">
+    <h1>Explore Investors</h1>
+  </div>
+  <p class="text-muted" style="margin:-.4rem 0 1rem;">Send a direct funding request to an investor: pick one of
+    your startups, say how much you need, and what equity or share you're offering.</p>
+
+  <form method="GET" class="glass card-pad" style="margin-bottom:1.5rem;">
+    <div class="form-group"><label>Name</label><input type="text" name="q" value="{{ q }}" placeholder="Search investors"></div>
+    <button class="btn btn-primary btn-sm" type="submit">Search</button>
+    <a href="{{ url_for('investment.browse_investors') }}" class="btn btn-outline btn-sm">Clear</a>
+  </form>
+
+  <div class="grid grid-3 animate-on-scroll">
+    {% for inv in investors %}
+    <div class="glass card-pad hover-lift">
+      <div class="flex gap-2">
+        {% if inv.profile and inv.profile.photo %}
+          <img src="{{ url_for('static', filename='uploads/' ~ inv.profile.photo) }}" class="avatar" style="width:52px;height:52px;">
+        {% else %}
+          <div class="avatar" style="width:52px;height:52px;background:linear-gradient(135deg,var(--blue-500),var(--green-500));"></div>
+        {% endif %}
+        <div>
+          <strong>{{ inv.full_name }}</strong><br>
+          <span class="text-muted" style="font-size:.82rem;">{{ inv.profile.location if inv.profile and inv.profile.location else "" }}</span>
+        </div>
+      </div>
+      <p class="text-muted" style="margin:.7rem 0;font-size:.9rem;">
+        {% if inv.profile and inv.profile.bio %}{{ inv.profile.bio[:110] }}{% if inv.profile.bio|length > 110 %}…{% endif %}
+        {% else %}No bio provided yet.{% endif %}
+      </p>
+      <div class="flex gap-1 flex-wrap" style="margin-bottom:.7rem;">
+        {% if inv.profile and inv.profile.industry %}<span class="badge badge-blue">{{ inv.profile.industry }}</span>{% endif %}
+        {% if inv.is_verified() %}<span class="badge badge-verified">Verified</span>{% endif %}
+      </div>
+      {% if inv.profile and inv.profile.interests %}
+      <p class="text-muted" style="font-size:.8rem;margin-bottom:.7rem;"><strong>Interested in:</strong> {{ inv.profile.interests }}</p>
+      {% endif %}
+      <a href="{{ url_for('investment.send_founder_request', investor_id=inv.id) }}" class="btn btn-primary btn-sm">Send Funding Request</a>
+    </div>
+    {% else %}
+    <p class="text-muted">No investors match your search.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
