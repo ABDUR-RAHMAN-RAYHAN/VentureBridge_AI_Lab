@@ -1,11 +1,18 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, abort
 from flask_login import login_required, current_user
 from sqlalchemy import func
 from extensions import db
 from models import (User, Startup, Job, JobApplication, InvestmentRequest, Agreement,
-                     IdentityVerification, VerificationPhoto, StartupDocument, AuditLog, Connection)
+                     IdentityVerification, VerificationPhoto, StartupDocument, AuditLog, Connection,
+                     Notification)
 from forms import ProfileForm, ContactForm, VerificationForm
-from utils import save_upload, save_base64_image, log_action, is_upload
+from utils import save_upload, save_base64_image, log_action, is_upload, notify
+
+
+def _notify_admins(title, message="", url=None):
+    """Notifies every active admin — used for queue items that need admin review."""
+    for admin in User.query.filter_by(role="admin", is_active_account=True).all():
+        notify(admin.id, title, message, url)
 
 bp = Blueprint("main", __name__)
 
@@ -260,6 +267,9 @@ def profile_edit():
             log_action("profile_updated")
             if verification_attempted and verification_ok:
                 flash("Profile updated and identity verification submitted for admin review.", "success")
+                _notify_admins("New identity verification to review",
+                                f"{current_user.full_name} submitted an NID/ID verification and is awaiting review.",
+                                url_for("admin.verification_queue"))
             else:
                 flash("Profile updated successfully.", "success")
             return redirect(url_for("main.profile"))
@@ -267,3 +277,61 @@ def profile_edit():
             db.session.rollback()
 
     return render_template("profile/form.html", form=form, verification_form=verification_form, profile=profile)
+
+
+# =========================================================
+# Notifications (navbar bell, for every role)
+# =========================================================
+@bp.route("/notifications")
+@login_required
+def notifications():
+    page = request.args.get("page", 1, type=int)
+    pagination = Notification.query.filter_by(user_id=current_user.id).order_by(
+        Notification.created_at.desc()).paginate(page=page, per_page=25, error_out=False)
+    return render_template("notifications.html", pagination=pagination, notifs=pagination.items)
+
+
+@bp.route("/notifications/feed")
+@login_required
+def notifications_feed():
+    """Small JSON feed for the navbar dropdown: the most recent notifications + unread count."""
+    recent = Notification.query.filter_by(user_id=current_user.id).order_by(
+        Notification.created_at.desc()).limit(8).all()
+    unread_count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
+    return {
+        "unread_count": unread_count,
+        "items": [
+            {
+                "id": n.id,
+                "title": n.title,
+                "message": n.message or "",
+                "url": n.url or url_for("main.notifications"),
+                "is_read": n.is_read,
+                "created_at": n.created_at.strftime("%b %d, %H:%M"),
+            }
+            for n in recent
+        ],
+    }
+
+
+@bp.route("/notifications/<int:notif_id>/read", methods=["POST"])
+@login_required
+def mark_notification_read(notif_id):
+    n = Notification.query.get_or_404(notif_id)
+    if n.user_id != current_user.id:
+        abort(403)
+    n.is_read = True
+    db.session.commit()
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return {"ok": True}
+    return redirect(n.url or url_for("main.notifications"))
+
+
+@bp.route("/notifications/read-all", methods=["POST"])
+@login_required
+def mark_all_notifications_read():
+    Notification.query.filter_by(user_id=current_user.id, is_read=False).update({"is_read": True})
+    db.session.commit()
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return {"ok": True}
+    return redirect(url_for("main.notifications"))
