@@ -152,8 +152,8 @@ def run():
                                 funding_amount=50000, platform_fee_percent=2.5, status="active",
                                 benefit_terms="8% equity stake in GreenTech Solutions in exchange for "
                                               "$50,000 in milestone-based funding.",
-                                founder_signed_name=aisha.full_name, founder_signed_at=datetime.utcnow() - timedelta(days=2),
-                                investor_signed_name=david.full_name, investor_signed_at=datetime.utcnow() - timedelta(days=1),
+                                founder_signature_filename="demo_founder_sig.png", founder_signed_at=datetime.utcnow() - timedelta(days=2),
+                                investor_signature_filename="demo_investor_sig.png", investor_signed_at=datetime.utcnow() - timedelta(days=1),
                                 investor_deposited_at=datetime.utcnow() - timedelta(days=1),
                                 investor_deposit_note="Bank transfer #TXN-88213 (full amount)",
                                 admin_confirmed_deposit_at=datetime.utcnow() - timedelta(hours=20),
@@ -225,24 +225,6 @@ def run():
             FundingProposalItem(proposal_id=proposal3b.id, reason="Second manufacturing line", amount=15000),
             FundingProposalItem(proposal_id=proposal3b.id, reason="Regional certification & compliance", amount=10000),
         ])
-
-        # REQ4 (farhan -> meera): founder-initiated direct funding ask, showing the
-        # equity/share negotiation flow (amount + equity%, no item breakdown).
-        req4 = InvestmentRequest(investor_id=meera.id, startup_id=mediconnect.id,
-                                  message="We're ready to scale MediConnect to two more districts — "
-                                          "would you be open to backing this round?",
-                                  initiated_by="founder", status="awaiting_investor_review")
-        db.session.add(req4)
-        db.session.commit()
-
-        proposal4 = FundingProposal(request_id=req4.id, version=1, proposed_by_id=farhan.id,
-                                     total_amount=40000, equity_percent=6.0, status="pending",
-                                     notes="We're ready to scale MediConnect to two more districts — "
-                                           "would you be open to backing this round?")
-        db.session.add(proposal4)
-        db.session.flush()
-        db.session.add(FundingProposalItem(proposal_id=proposal4.id, reason="Total funding requested", amount=40000))
-
 
         # ---- Identity verification samples ----
         v1 = IdentityVerification(user_id=aisha.id, doc_type="National ID", status="approved",
