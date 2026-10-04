@@ -1,3 +1,4 @@
+import re
 from flask import current_app
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed, FileRequired
@@ -6,6 +7,7 @@ from wtforms import (StringField, PasswordField, SelectField, TextAreaField,
 from wtforms.validators import (DataRequired, Email, Length, EqualTo, Optional,
                                  NumberRange, ValidationError)
 from models import User
+
 
 DEFAULT_ALLOWED_EMAIL_DOMAINS = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com"]
 
@@ -28,15 +30,30 @@ def validate_email_domain(email):
         pretty = ", ".join(domains[:-1]) + " or " + domains[-1] if len(domains) > 1 else domains[0]
         raise ValidationError(f"Please use a {pretty} address.")
 
-
 DOC_EXT = ["pdf", "png", "jpg", "jpeg"]
 IMG_EXT = ["png", "jpg", "jpeg"]
+
+
+def strong_password(form, field):
+    """
+    Requires at least one uppercase letter, one lowercase letter, one digit,
+    and one special character, on top of the existing Length(min=8) rule.
+    """
+    pw = field.data or ""
+    if not re.search(r"[A-Z]", pw):
+        raise ValidationError("Password must contain at least one uppercase letter.")
+    if not re.search(r"[a-z]", pw):
+        raise ValidationError("Password must contain at least one lowercase letter.")
+    if not re.search(r"[0-9]", pw):
+        raise ValidationError("Password must contain at least one number.")
+    if not re.search(r"[^A-Za-z0-9]", pw):
+        raise ValidationError("Password must contain at least one special character (e.g. !@#$%).")
 
 
 class RegisterForm(FlaskForm):
     full_name = StringField("Full Name", validators=[DataRequired(), Length(2, 120)])
     email = StringField("Email", validators=[DataRequired(), Email(), Length(max=150)])
-    password = PasswordField("Password", validators=[DataRequired(), Length(min=8)])
+    password = PasswordField("Password", validators=[DataRequired(), Length(min=8), strong_password])
     confirm_password = PasswordField("Confirm Password",
                                       validators=[DataRequired(), EqualTo("password", message="Passwords must match.")])
     role = SelectField("I am a...", choices=[("founder", "Founder"), ("investor", "Investor"),
@@ -59,7 +76,7 @@ class ForgotPasswordForm(FlaskForm):
 
 
 class ResetPasswordForm(FlaskForm):
-    password = PasswordField("New Password", validators=[DataRequired(), Length(min=8)])
+    password = PasswordField("New Password", validators=[DataRequired(), Length(min=8), strong_password])
     confirm_password = PasswordField("Confirm Password", validators=[DataRequired(), EqualTo("password")])
 
 
@@ -119,20 +136,8 @@ class InvestmentRequestForm(FlaskForm):
     message = TextAreaField("Message to founder", validators=[DataRequired(), Length(max=2000)])
 
 
-class FounderFundingRequestForm(FlaskForm):
-    """A founder's direct funding ask sent to a specific investor: how much
-    the startup needs and what equity/share it's offered in exchange."""
-    startup_id = SelectField("Which of your startups is this for?", coerce=int, validators=[DataRequired()])
-    total_amount = FloatField("Investment Needed (USD)", validators=[DataRequired(), NumberRange(min=1)])
-    equity_percent = FloatField("Equity / Share Offered (%)", validators=[DataRequired(), NumberRange(min=0.01, max=100)])
-    message = TextAreaField("Message to investor", validators=[DataRequired(), Length(max=2000)])
-
-
 class FinancialProposalForm(FlaskForm):
     total_amount = FloatField("Total Funding Requested (USD)", validators=[DataRequired(), NumberRange(min=1)])
-    # Only used for a founder-initiated equity ask; left blank on the classic,
-    # itemized-breakdown flow.
-    equity_percent = FloatField("Equity / Share Offered (%)", validators=[Optional(), NumberRange(min=0.01, max=100)])
     notes = TextAreaField("Overall Justification", validators=[DataRequired(), Length(max=3000)],
                            description="Explain the general context for this funding ask.")
     items_json = HiddenField()  # JSON-encoded list of {reason, amount} built client-side
@@ -148,7 +153,10 @@ class AgreementForm(FlaskForm):
 
 
 class SignatureForm(FlaskForm):
-    signed_name = StringField("Type your full legal name to sign", validators=[DataRequired(), Length(2, 150)])
+    signature_document = FileField(
+        "Upload your signed copy (PDF, or a photo/scan of your signature)",
+        validators=[FileRequired(message="A signed document is required."),
+                    FileAllowed(DOC_EXT, "PDF, PNG, or JPG only.")])
     confirm = HiddenField(validators=[DataRequired(message="You must confirm you agree to the terms.")])
 
 
