@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Admin — Jobs{% endblock %}
+{% block content %}
+<div class="animate-in">
+  <h1>Job Management</h1>
+  <div class="glass card-pad table-wrap">
+    <table>
+      <thead><tr><th>Title</th><th>Startup</th><th>Type</th><th>Status</th><th>Posted</th><th>Action</th></tr></thead>
+      <tbody>
+        {% for j in jobs %}
+        <tr>
+          <td><a href="{{ url_for('jobs.detail', job_id=j.id) }}">{{ j.title }}</a></td>
+          <td>{{ j.startup.name }}</td>
+          <td>{{ j.job_type }}</td>
+          <td>{% if j.status == 'open' %}<span class="badge badge-verified">Open</span>{% else %}<span class="badge badge-rejected">Closed</span>{% endif %}</td>
+          <td>{{ j.created_at.strftime("%Y-%m-%d") }}</td>
+          <td>
+            <form method="POST" action="{{ url_for('admin.toggle_job', job_id=j.id) }}"
+                  onsubmit="return confirm('{{ 'Close' if j.status == 'open' else 'Reopen' }} this job?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm {{ 'btn-danger' if j.status == 'open' else 'btn-green' }}" type="submit">
+                {{ "Close" if j.status == "open" else "Reopen" }}
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% else %}<tr><td colspan="6" class="text-muted">No jobs found.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

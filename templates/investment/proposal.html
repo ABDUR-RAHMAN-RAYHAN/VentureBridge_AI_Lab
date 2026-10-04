@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Funding Proposal{% endblock %}
+{% block content %}
+<div class="animate-in" style="max-width:780px;margin:0 auto;">
+  <h1>{{ "Funding Request" if equity_flow else "Financial Distribution Proposal" }}</h1>
+  <p class="text-muted">{{ req.startup.name }} · {{ req.investor.full_name }}</p>
+
+  {% if latest %}
+  <div class="glass card-pad" style="margin-bottom:1.5rem;">
+    <div class="flex-between">
+      <h3 style="margin:0;">Version {{ latest.version }} — proposed by {{ latest.proposed_by.full_name }}</h3>
+      <span class="badge {{ 'badge-verified' if latest.status == 'accepted' else 'badge-pending' }}">{{ latest.status|capitalize }}</span>
+    </div>
+    <p class="text-muted" style="margin:.4rem 0 1rem;">{{ latest.created_at.strftime("%Y-%m-%d %H:%M") }}</p>
+    <p><strong>{{ "Investment Requested" if equity_flow else "Total Requested" }}:</strong> ${{ "%.2f"|format(latest.total_amount) }}</p>
+    {% if equity_flow %}
+    <p><strong>Equity / Share Offered:</strong> {{ latest.equity_percent }}%</p>
+    <p><strong>Message:</strong> {{ latest.notes }}</p>
+    {% else %}
+    <p><strong>Justification:</strong> {{ latest.notes }}</p>
+    <table style="margin-top:.8rem;">
+      <thead><tr><th>Reason</th><th>Amount</th></tr></thead>
+      <tbody>
+        {% for it in latest.items %}
+        <tr><td>{{ it.reason }}</td><td>${{ "%.2f"|format(it.amount) }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+    {% if req.status in ['awaiting_investor_review', 'awaiting_founder_review'] and current_user.id != latest.proposed_by_id %}
+      <div class="flex gap-2 flex-wrap" style="margin-top:1.2rem;">
+        <form method="POST" action="{{ url_for('investment.accept_proposal', req_id=req.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-green" type="submit">Accept These Terms</button>
+        </form>
+        {% if current_user.role == 'investor' %}
+        <a href="{{ url_for('investment.revise_proposal', req_id=req.id) }}" class="btn btn-outline">Change Amount / Percentage</a>
+        {% elif current_user.role == 'founder' %}
+        <a href="{{ url_for('investment.submit_proposal', req_id=req.id) }}" class="btn btn-outline">Send Back Changes</a>
+        {% endif %}
+        <form method="POST" action="{{ url_for('investment.decline_proposal', req_id=req.id) }}"
+              onsubmit="return confirm('Decline and close this request? This cannot be undone.');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-danger" type="submit">Decline</button>
+        </form>
+      </div>
+    {% elif req.status in ['awaiting_investor_review', 'awaiting_founder_review'] %}
+      <div class="alert alert-info" style="margin-top:1rem;">Waiting for the other party to respond to this version.</div>
+    {% elif req.status == 'milestones_setup' %}
+      <div class="alert alert-success" style="margin-top:1rem;">
+        Terms accepted!
+        {% if current_user.role == 'founder' %}<a href="{{ url_for('investment.build_milestones', req_id=req.id) }}">Set up the milestone schedule →</a>
+        {% else %}Waiting for the founder to set up the milestone schedule.{% endif %}
+      </div>
+    {% elif req.status == 'awaiting_signatures' %}
+      <div class="alert alert-success" style="margin-top:1rem;">
+        <a href="{{ url_for('investment.sign_agreement', req_id=req.id) }}">Review and sign the agreement →</a>
+      </div>
+    {% elif req.status == 'active' %}
+      <div class="alert alert-success" style="margin-top:1rem;">
+        <a href="{{ url_for('investment.agreement', req_id=req.id) }}">View the active agreement →</a>
+      </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if history|length > 1 %}
+  <h3>Negotiation History</h3>
+  <div class="glass card-pad table-wrap">
+    <table>
+      <thead><tr><th>Version</th><th>Proposed By</th><th>Total</th>{% if equity_flow %}<th>Equity</th>{% endif %}<th>Status</th><th>Date</th></tr></thead>
+      <tbody>
+        {% for p in history %}
+        <tr>
+          <td>v{{ p.version }}</td>
+          <td>{{ p.proposed_by.full_name }}</td>
+          <td>${{ "%.2f"|format(p.total_amount) }}</td>
+          {% if equity_flow %}<td>{{ p.equity_percent }}%</td>{% endif %}
+          <td>{{ p.status|capitalize }}</td>
+          <td>{{ p.created_at.strftime("%Y-%m-%d") }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

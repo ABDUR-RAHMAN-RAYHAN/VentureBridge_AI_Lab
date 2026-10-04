@@ -1,0 +1,60 @@
+/* Formal document stylesheet: plain black text on white, no glass/color effects.
+   Used only for generated legal/contract documents (e.g. the Investment Agreement),
+   which must stay fully legible and professional regardless of site theme. */
+
+*{box-sizing:border-box;}
+body{
+  margin:0; font-family:Georgia,"Times New Roman",serif; color:#111;
+  background:#e9e9e9; min-height:100vh;
+}
+
+.doc-toolbar{
+  max-width:800px; margin:0 auto; padding:1rem 1.5rem 0;
+  display:flex; justify-content:space-between; align-items:center; font-family:Calibri,Arial,sans-serif;
+}
+.doc-toolbar a, .doc-toolbar button{
+  font-family:Calibri,Arial,sans-serif; font-size:.85rem; padding:.5rem 1rem; border-radius:6px;
+  border:1px solid #999; background:#fff; color:#111; text-decoration:none; cursor:pointer;
+}
+.doc-toolbar button.primary{ background:#111; color:#fff; border-color:#111; }
+
+.doc-page{
+  max-width:800px; margin:1.5rem auto 3rem; background:#fff; color:#111;
+  padding:3rem 3.5rem; border:1px solid #ccc; box-shadow:0 2px 10px rgba(0,0,0,.15);
+  line-height:1.6;
+}
+.doc-page h1{font-size:1.6rem; margin:.4rem 0 0; text-align:center;}
+.doc-page h3{font-size:1.05rem; margin:1.4rem 0 .4rem; border-bottom:1px solid #111; padding-bottom:.2rem;}
+.doc-page p{margin:.5rem 0; font-size:.95rem;}
+.doc-page .doc-muted{color:#444; font-size:.85rem;}
+.doc-page .doc-small{font-size:.8rem; color:#333;}
+.doc-page hr{border:none; border-top:1px solid #999; margin:1rem 0;}
+.doc-page table{width:100%; border-collapse:collapse; margin:.6rem 0;}
+.doc-page th, .doc-page td{border:1px solid #999; padding:.5rem .6rem; text-align:left; font-size:.88rem;}
+.doc-page th{background:#f0f0f0;}
+.doc-page .doc-grid-2{display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin:.6rem 0;}
+.doc-page .doc-header{text-align:center; margin-bottom:1rem;}
+.doc-page .doc-header img{height:44px; filter:grayscale(1) contrast(1.3);}
+.doc-page .doc-badge{
+  display:inline-block; border:1px solid #111; border-radius:4px; padding:.15rem .5rem;
+  font-size:.75rem; font-family:Calibri,Arial,sans-serif;
+}
+.doc-page .doc-signature-block{margin-top:1.5rem;}
+.doc-page .doc-signature-line{border-bottom:1px solid #111; min-width:220px; display:inline-block; padding-bottom:2px;}
+.doc-page .doc-action-btn{font-family:Calibri,Arial,sans-serif;}
+
+.doc-flash-wrap{max-width:800px; margin:1rem auto 0; padding:0 1.5rem;}
+.doc-alert{
+  font-family:Calibri,Arial,sans-serif; padding:.7rem 1rem; border-radius:6px; margin-bottom:.6rem;
+  border:1px solid #999; background:#fff; font-size:.88rem;
+}
+.doc-alert-success{border-color:#2a7; }
+.doc-alert-danger{border-color:#c33;}
+.doc-alert-warning{border-color:#c90;}
+.doc-alert-info{border-color:#369;}
+
+@media print{
+  .no-print{display:none !important;}
+  body{background:#fff !important;}
+  .doc-page{box-shadow:none !important; border:none !important; margin:0 auto !important;}
+}

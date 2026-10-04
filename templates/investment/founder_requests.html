@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Investment Requests{% endblock %}
+{% block content %}
+<div class="animate-in">
+  <h1>Investment Interest Requests</h1>
+  <div class="grid grid-2">
+    {% for r in reqs %}
+    <div class="glass card-pad hover-lift">
+      <div class="flex-between">
+        <strong>{{ r.investor.full_name }}</strong>
+        {% set colors = {"pending":"badge-pending","awaiting_investor_review":"badge-pending","awaiting_founder_review":"badge-pending",
+                          "milestones_setup":"badge-pending","awaiting_signatures":"badge-pending","active":"badge-verified","rejected":"badge-rejected"} %}
+        {% set labels = {"pending":"New Interest","awaiting_investor_review":"Awaiting Investor Review","awaiting_founder_review":"Investor Sent Changes",
+                          "milestones_setup":"Set Up Milestones","awaiting_signatures":"Awaiting Signatures","active":"Active","rejected":"Rejected"} %}
+        <span class="badge {{ colors[r.status] }}">{{ labels[r.status] }}</span>
+      </div>
+      <span class="text-muted" style="font-size:.85rem;">For: {{ r.startup.name }} · {{ r.created_at.strftime("%Y-%m-%d") }}</span>
+      <p style="margin:.6rem 0;">{{ r.message }}</p>
+
+      {% if r.status == 'pending' %}
+        <div class="flex gap-1">
+          <a href="{{ url_for('investment.submit_proposal', req_id=r.id) }}" class="btn btn-green btn-sm">Accept & Send Proposal</a>
+          <form method="POST" action="{{ url_for('investment.reject', req_id=r.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-danger btn-sm" type="submit">Reject</button>
+          </form>
+        </div>
+      {% elif r.status == 'awaiting_investor_review' %}
+        <a href="{{ url_for('investment.view_proposal', req_id=r.id) }}" class="btn btn-outline btn-sm">View Your Proposal</a>
+      {% elif r.status == 'awaiting_founder_review' %}
+        <a href="{{ url_for('investment.view_proposal', req_id=r.id) }}" class="btn btn-green btn-sm">Review Investor's Changes</a>
+      {% elif r.status == 'milestones_setup' %}
+        <a href="{{ url_for('investment.build_milestones', req_id=r.id) }}" class="btn btn-green btn-sm">Set Up Milestones</a>
+      {% elif r.status == 'awaiting_signatures' %}
+        <a href="{{ url_for('investment.sign_agreement', req_id=r.id) }}" class="btn btn-green btn-sm">Sign Agreement</a>
+      {% elif r.status == 'active' %}
+        <a href="{{ url_for('investment.agreement', req_id=r.id) }}" class="btn btn-outline btn-sm">View Agreement</a>
+      {% endif %}
+    </div>
+    {% else %}<p class="text-muted">No investment requests yet.</p>{% endfor %}
+  </div>
+</div>
+{% endblock %}

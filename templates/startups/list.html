@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Startups{% endblock %}
+{% block content %}
+<div class="animate-in">
+  <div class="flex-between flex-wrap gap-2">
+    <h1>{{ "Your Startups" if mine else "Explore Startups" }}</h1>
+    {% if current_user.is_authenticated and current_user.role == 'founder' %}
+      <a href="{{ url_for('startups.create') }}" class="btn btn-primary">+ List Your Startup</a>
+    {% endif %}
+  </div>
+
+  {% if mine %}<p class="text-muted" style="margin:-.4rem 0 1rem;">Your own listings, including any still awaiting document review.
+    <a href="{{ url_for('startups.list_startups') }}">Browse all startups instead</a></p>{% endif %}
+
+  <form method="GET" class="glass card-pad" style="margin-bottom:1.5rem;">
+    {% if mine %}<input type="hidden" name="mine" value="1">{% endif %}
+    <div class="grid grid-4">
+      <div class="form-group"><label>Keyword</label><input type="text" name="q" value="{{ q }}" placeholder="Search name/description"></div>
+      <div class="form-group"><label>Industry</label><input type="text" name="industry" value="{{ industry }}" placeholder="e.g. FinTech"></div>
+      <div class="form-group"><label>Location</label><input type="text" name="location" value="{{ location }}" placeholder="e.g. Dhaka"></div>
+      <div class="form-group"><label>Stage</label>
+        <select name="stage">
+          <option value="">Any</option>
+          {% for s in ["Idea","MVP","Early Stage","Growth","Scaling"] %}
+          <option value="{{ s }}" {% if stage==s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-sm" type="submit">Filter</button>
+    <a href="{{ url_for('startups.list_startups') }}" class="btn btn-outline btn-sm">Clear</a>
+  </form>
+
+  <div class="grid grid-3 animate-on-scroll">
+    {% for s in startups %}
+    <div class="glass card-pad hover-lift">
+      <div class="flex gap-2">
+        {% if s.logo %}<img src="{{ url_for('static', filename='uploads/' ~ s.logo) }}" class="startup-logo">
+        {% else %}<div class="startup-logo" style="background:linear-gradient(135deg,var(--blue-500),var(--green-500));"></div>{% endif %}
+        <div><strong>{{ s.name }}</strong><br><span class="text-muted" style="font-size:.82rem;">{{ s.industry }} · {{ s.location }}</span></div>
+      </div>
+      <p class="text-muted" style="margin:.7rem 0;font-size:.9rem;">{{ s.description[:100] }}{% if s.description|length > 100 %}…{% endif %}</p>
+      <div class="flex gap-1 flex-wrap" style="margin-bottom:.7rem;">
+        <span class="badge badge-blue">{{ s.stage }}</span>
+        {% if s.document_status == 'approved' %}<span class="badge badge-verified">Documents Verified</span>
+        {% elif s.document_status == 'rejected' %}<span class="badge badge-rejected">Rejected</span>
+        {% else %}<span class="badge badge-pending">Pending Review</span>{% endif %}
+        {% if s.founder.is_verified() %}<span class="badge badge-verified">Founder Verified</span>{% endif %}
+      </div>
+      <a href="{{ url_for('startups.detail', startup_id=s.id) }}" class="btn btn-outline btn-sm">View Profile</a>
+    </div>
+    {% else %}
+    <p class="text-muted">No startups match your filters.</p>
+    {% endfor %}
+  </div>
+
+  {% if pagination and pagination.pages > 1 %}
+  <div class="pagination">
+    {% for p in range(1, pagination.pages+1) %}
+      <a href="{{ url_for('startups.list_startups', page=p, q=q, industry=industry, location=location, stage=stage, mine=1 if mine else None) }}"
+         class="{{ 'active' if p == pagination.page else '' }}">{{ p }}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

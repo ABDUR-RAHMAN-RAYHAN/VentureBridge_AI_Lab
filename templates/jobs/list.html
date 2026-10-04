@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Jobs{% endblock %}
+{% block content %}
+<div class="animate-in">
+  <h1>{{ "Your Job Posts" if mine else "Find Your Next Role" }}</h1>
+  {% if mine %}<p class="text-muted" style="margin:-.4rem 0 1rem;">Every job you have posted, open or closed.
+    <a href="{{ url_for('jobs.received_applications') }}">See all applications</a></p>{% endif %}
+  <form method="GET" class="glass card-pad" style="margin-bottom:1.5rem;">
+    {% if mine %}<input type="hidden" name="mine" value="1">{% endif %}
+    <div class="grid grid-4">
+      <div class="form-group"><label>Keyword</label><input type="text" name="q" value="{{ q }}"></div>
+      <div class="form-group"><label>Location</label><input type="text" name="location" value="{{ location }}"></div>
+      <div class="form-group"><label>Job Type</label>
+        <select name="job_type"><option value="">Any</option>
+          {% for t in ["Full-time","Part-time","Internship","Remote","Contract"] %}
+          <option value="{{ t }}" {% if job_type==t %}selected{% endif %}>{{ t }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group"><label>Skill</label><input type="text" name="skill" value="{{ skill }}"></div>
+    </div>
+    <button class="btn btn-primary btn-sm" type="submit">Filter</button>
+    <a href="{{ url_for('jobs.list_jobs') }}" class="btn btn-outline btn-sm">Clear</a>
+  </form>
+
+  <div class="grid grid-2 animate-on-scroll">
+    {% for j in jobs %}
+    <div class="glass card-pad hover-lift">
+      <div class="flex-between">
+        <strong>{{ j.title }}</strong>
+        <span class="badge badge-blue">{{ j.job_type }}</span>
+      </div>
+      <span class="text-muted" style="font-size:.85rem;">{{ j.startup.name }} · {{ j.location }}</span>
+      <p class="text-muted" style="margin:.6rem 0;font-size:.9rem;">{{ j.description[:110] }}…</p>
+      <a href="{{ url_for('jobs.detail', job_id=j.id) }}" class="btn btn-outline btn-sm">View & Apply</a>
+    </div>
+    {% else %}<p class="text-muted">No open jobs match your filters.</p>{% endfor %}
+  </div>
+
+  {% if pagination and pagination.pages > 1 %}
+  <div class="pagination">
+    {% for p in range(1, pagination.pages+1) %}
+      <a href="{{ url_for('jobs.list_jobs', page=p, q=q, location=location, job_type=job_type, skill=skill, mine=1 if mine else None) }}"
+         class="{{ 'active' if p == pagination.page else '' }}">{{ p }}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

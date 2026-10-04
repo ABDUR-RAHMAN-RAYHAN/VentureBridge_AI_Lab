@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Sign Agreement{% endblock %}
+{% block content %}
+<div class="glass card-pad animate-in" style="max-width:600px;margin:0 auto;">
+  <h1>Sign the Agreement</h1>
+  <p class="text-muted">Reference No: <strong>{{ agreement.reference_no }}</strong> · {{ req.startup.name }}</p>
+
+  <div class="grid grid-2" style="margin:1.2rem 0;">
+    <div class="glass card-pad" style="padding:1rem;">
+      <strong>Founder</strong><br>{{ req.startup.founder.full_name }}<br>
+      {% if agreement.founder_signed_at %}
+        <span class="badge badge-verified">Signed {{ agreement.founder_signed_at.strftime("%Y-%m-%d %H:%M") }}</span>
+      {% else %}<span class="badge badge-pending">Awaiting Signature</span>{% endif %}
+    </div>
+    <div class="glass card-pad" style="padding:1rem;">
+      <strong>Investor</strong><br>{{ req.investor.full_name }}<br>
+      {% if agreement.investor_signed_at %}
+        <span class="badge badge-verified">Signed {{ agreement.investor_signed_at.strftime("%Y-%m-%d %H:%M") }}</span>
+      {% else %}<span class="badge badge-pending">Awaiting Signature</span>{% endif %}
+    </div>
+  </div>
+
+  <a href="{{ url_for('investment.agreement', req_id=req.id) }}" class="btn btn-outline btn-sm">View Full Agreement Document</a>
+
+  {% if already_signed %}
+    <div class="alert alert-info" style="margin-top:1.2rem;">You've already signed this agreement.
+      {% if not agreement.is_fully_signed() %}Waiting for the other party.{% endif %}</div>
+  {% elif not is_founder and not is_investor %}
+    <div class="alert alert-info" style="margin-top:1.2rem;">Only the investor and founder on this request can sign it.</div>
+  {% else %}
+    <hr class="divider">
+    <p class="text-muted" style="font-size:.85rem;">By signing, you confirm you have read the agreement document and
+      agree to its terms, including the milestone-based funding schedule and disclaimer.</p>
+    <form method="POST" novalidate onsubmit="document.getElementById('confirmField').value='yes';">
+      {{ form.csrf_token }}
+      <div class="form-group">{{ form.signed_name.label }} {{ form.signed_name(placeholder=(req.startup.founder.full_name if is_founder else req.investor.full_name)) }}</div>
+      {{ form.confirm(id="confirmField") }}
+      <label class="flex gap-1"><input type="checkbox" required style="width:auto;"> I agree to the terms of this agreement</label>
+      <button class="btn btn-green" style="margin-top:1rem;" type="submit">Sign Agreement</button>
+    </form>
+  {% endif %}
+</div>
+{% endblock %}

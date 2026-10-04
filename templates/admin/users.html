@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Admin — Users{% endblock %}
+{% block content %}
+<div class="animate-in">
+  <h1>User Management</h1>
+  <form method="GET" class="glass card-pad flex gap-2 flex-wrap" style="margin-bottom:1.5rem;">
+    <input type="text" name="q" value="{{ q }}" placeholder="Search name or email" style="flex:1;min-width:200px;">
+    <select name="role">
+      <option value="">Any Role</option>
+      {% for r in ["founder","investor","jobseeker","admin"] %}
+      <option value="{{ r }}" {% if role==r %}selected{% endif %}>{{ r|capitalize }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn btn-primary btn-sm" type="submit">Filter</button>
+  </form>
+
+  <div class="glass card-pad table-wrap">
+    <table>
+      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Verified</th><th>Status</th><th>Joined</th><th>Action</th></tr></thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>{{ u.full_name }}</td>
+          <td>{{ u.email }}</td>
+          <td><span class="badge badge-blue">{{ u.role|capitalize }}</span></td>
+          <td>{% if u.is_verified() %}<span class="badge badge-verified">✓</span>{% else %}—{% endif %}</td>
+          <td>{% if u.is_active_account %}<span class="badge badge-verified">Active</span>{% else %}<span class="badge badge-rejected">Deactivated</span>{% endif %}</td>
+          <td>{{ u.created_at.strftime("%Y-%m-%d") }}</td>
+          <td>
+            <form method="POST" action="{{ url_for('admin.toggle_user', user_id=u.id) }}"
+                  onsubmit="return confirm('{{ 'Deactivate' if u.is_active_account else 'Activate' }} {{ u.full_name }}?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm {{ 'btn-danger' if u.is_active_account else 'btn-green' }}" type="submit">
+                {{ "Deactivate" if u.is_active_account else "Activate" }}
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% else %}<tr><td colspan="7" class="text-muted">No users found.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

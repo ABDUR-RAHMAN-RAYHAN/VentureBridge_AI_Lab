@@ -19,21 +19,35 @@ def create_app():
     def load_user(user_id):
         return User.query.get(int(user_id))
 
+    # ---- Blueprints ----
     from blueprints.auth import bp as auth_bp
     from blueprints.main import bp as main_bp
+    from blueprints.startups import bp as startups_bp
+    from blueprints.jobs import bp as jobs_bp
+    from blueprints.investment import bp as investment_bp
+    from blueprints.messaging import bp as messaging_bp
+    from blueprints.admin import bp as admin_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
+    app.register_blueprint(startups_bp)
+    app.register_blueprint(jobs_bp)
+    app.register_blueprint(investment_bp)
+    app.register_blueprint(messaging_bp)
+    app.register_blueprint(admin_bp)
 
+    # ---- Security headers on every response ----
     @app.after_request
     def set_security_headers(response):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(self), microphone=()"
         if request.is_secure:
             app.config["SESSION_COOKIE_SECURE"] = True
         return response
 
+    # ---- Graceful error pages (no stack traces leaked) ----
     @app.errorhandler(403)
     def forbidden(e):
         return render_template("errors.html", code=403,
@@ -53,6 +67,7 @@ def create_app():
         return render_template("errors.html", code=500,
                                 message="Something went wrong on our end. Please try again."), 500
 
+    # ---- Template globals ----
     @app.context_processor
     def inject_globals():
         from datetime import datetime as dt

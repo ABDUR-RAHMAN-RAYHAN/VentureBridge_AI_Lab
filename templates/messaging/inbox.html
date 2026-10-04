@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Messages{% endblock %}
+{% block content %}
+<div class="animate-in">
+  <h1>Messages</h1>
+  <p class="text-muted">You can only message users you're connected to (e.g. after an accepted investment interest).</p>
+  <div class="glass" style="max-width:640px;">
+    {% for t in threads %}
+    <a href="{{ url_for('messaging.thread', connection_id=t.connection.id) }}"
+       style="display:block;padding:1rem 1.2rem;border-bottom:1px solid var(--glass-border);color:var(--text-main);">
+      <div class="flex-between">
+        <strong>{{ t.other.full_name }} <span class="badge badge-outline" style="font-size:.68rem;">{{ t.other.role|capitalize }}</span></strong>
+        {% if t.unread %}<span class="badge badge-blue">{{ t.unread }} new</span>{% endif %}
+      </div>
+      <p class="text-muted" style="margin:.3rem 0 0;font-size:.85rem;">
+        {% if t.last_msg %}{{ t.last_msg.body[:70] }}{% else %}No messages yet — say hello!{% endif %}
+      </p>
+    </a>
+    {% else %}
+    <div class="card-pad text-muted">No connections yet. Connections form automatically once an investment
+      interest is accepted, or another workflow links you with someone.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

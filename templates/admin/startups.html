@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Admin — Startups{% endblock %}
+{% block content %}
+<div class="animate-in">
+  <h1>Startup Management</h1>
+  <form method="GET" class="glass card-pad flex gap-2" style="margin-bottom:1.5rem;">
+    <input type="text" name="q" value="{{ q }}" placeholder="Search startup name" style="flex:1;">
+    <button class="btn btn-primary btn-sm" type="submit">Search</button>
+  </form>
+  <div class="glass card-pad table-wrap">
+    <table>
+      <thead><tr><th>Name</th><th>Founder</th><th>Industry</th><th>Documents</th><th>Status</th><th>Created</th><th>Action</th></tr></thead>
+      <tbody>
+        {% for s in startups %}
+        <tr>
+          <td><a href="{{ url_for('startups.detail', startup_id=s.id) }}">{{ s.name }}</a></td>
+          <td>{{ s.founder.full_name }}</td>
+          <td>{{ s.industry }}</td>
+          <td>
+            {% if s.document_status == 'approved' %}<span class="badge badge-verified">Verified</span>
+            {% elif s.document_status == 'rejected' %}<span class="badge badge-rejected">Rejected</span>
+            {% else %}<span class="badge badge-pending">Pending</span>{% endif %}
+          </td>
+          <td>{% if s.is_active %}<span class="badge badge-verified">Active</span>{% else %}<span class="badge badge-rejected">Deactivated</span>{% endif %}</td>
+          <td>{{ s.created_at.strftime("%Y-%m-%d") }}</td>
+          <td>
+            <form method="POST" action="{{ url_for('admin.toggle_startup', startup_id=s.id) }}"
+                  onsubmit="return confirm('{{ 'Deactivate' if s.is_active else 'Activate' }} {{ s.name }}?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm {{ 'btn-danger' if s.is_active else 'btn-green' }}" type="submit">
+                {{ "Deactivate" if s.is_active else "Activate" }}
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% else %}<tr><td colspan="7" class="text-muted">No startups found.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Post a Job{% endblock %}
+{% block content %}
+<div class="glass card-pad animate-in" style="max-width:620px;margin:0 auto;">
+  <h1>Post a Job for {{ startup.name }}</h1>
+  <form method="POST" novalidate>
+    {{ form.hidden_tag() }}
+    <div class="form-group">{{ form.title.label }} {{ form.title() }}</div>
+    <div class="form-group">{{ form.description.label }} {{ form.description(rows=4) }}</div>
+    <div class="form-group">{{ form.required_skills.label }} {{ form.required_skills() }}</div>
+    <div class="grid grid-2">
+      <div class="form-group">{{ form.experience_level.label }} {{ form.experience_level() }}</div>
+      <div class="form-group">{{ form.job_type.label }} {{ form.job_type() }}</div>
+    </div>
+    <div class="grid grid-2">
+      <div class="form-group">{{ form.location.label }} {{ form.location() }}</div>
+      <div class="form-group">{{ form.deadline.label }} {{ form.deadline() }}</div>
+    </div>
+    <div class="grid grid-2">
+      <div class="form-group">{{ form.salary_min.label }} {{ form.salary_min() }}</div>
+      <div class="form-group">{{ form.salary_max.label }} {{ form.salary_max() }}</div>
+    </div>
+    <button class="btn btn-primary" type="submit">Post Job</button>
+  </form>
+</div>
+{% endblock %}

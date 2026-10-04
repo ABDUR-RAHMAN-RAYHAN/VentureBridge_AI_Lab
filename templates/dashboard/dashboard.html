@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{# Every number card is a link. Pass href="" to render a plain, non-clickable
+   card; anything else turns the whole card into a single click target. #}
+{% macro stat(label, value, sub="", href="") %}
+{% if href %}<a class="glass stat-card hover-lift stat-link" href="{{ href }}">{% else %}<div class="glass stat-card hover-lift">{% endif %}
+  <div class="stat-label">{{ label }}</div>
+  <div class="stat-value">{{ value }}</div>
+  {% if sub %}<div class="text-muted" style="font-size:.78rem;margin-top:.15rem;">{{ sub }}</div>{% endif %}
+  {% if href %}<span class="stat-go">View →</span>{% endif %}
+{% if href %}</a>{% else %}</div>{% endif %}
+{% endmacro %}
+
+{% macro money(label, value, sub="", href="") %}
+{% if href %}<a class="glass stat-card hover-lift stat-link" href="{{ href }}">{% else %}<div class="glass stat-card hover-lift">{% endif %}
+  <div class="stat-label">{{ label }}</div>
+  <div class="stat-value">${{ "{:,.0f}".format(value) }}</div>
+  {% if sub %}<div class="text-muted" style="font-size:.78rem;margin-top:.15rem;">{{ sub }}</div>{% endif %}
+  {% if href %}<span class="stat-go">View →</span>{% endif %}
+{% if href %}</a>{% else %}</div>{% endif %}
+{% endmacro %}
+
+{# Horizontal breakdown bar — replaces the doughnut charts with something
+   easier to read at a glance and consistent with the rest of the UI. #}
+{% macro breakdown(title, rows, empty_msg="No data yet.") %}
+<div class="glass card-pad">
+  <h3 style="margin-bottom:.9rem;">{{ title }}</h3>
+  {% set total = rows | sum(attribute='count') %}
+  {% if total > 0 %}
+    {% for r in rows %}
+    <div style="margin-bottom:.8rem;">
+      <div class="flex-between" style="font-size:.88rem;margin-bottom:.25rem;">
+        <span>{{ r.label }}</span>
+        <span class="text-muted"><strong>{{ r.count }}</strong> · {{ ((r.count / total) * 100) | round | int }}%</span>
+      </div>
+      <div style="height:7px;border-radius:5px;background:rgba(128,128,128,.18);overflow:hidden;">
+        <div style="height:100%;width:{{ (r.count / total) * 100 }}%;background:{{ r.color }};border-radius:5px;"></div>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <p class="text-muted" style="font-size:.88rem;">{{ empty_msg }}</p>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% block content %}
+<div class="animate-in">
+
+  <div class="flex-between flex-wrap gap-2" style="margin-bottom:1.5rem;">
+    <div>
+      <h1 style="margin-bottom:.2rem;">Welcome back, {{ current_user.full_name.split()[0] }}</h1>
+      <span class="text-muted">{{ current_user.role|capitalize }} account
+        {% if current_user.requires_identity_verification() %}
+          {% if current_user.is_verified() %}· <span style="color:var(--green-700);font-weight:600;">✓ Verified</span>
+          {% else %}· <span class="text-muted">Unverified</span>{% endif %}
+        {% endif %}
+      </span>
+    </div>
+    <a href="{{ url_for('main.profile') }}" class="btn btn-outline btn-sm">View Profile</a>
+  </div>
+
+  {% set pct = current_user.profile.completion_percent() %}
+  {% if pct < 100 %}
+  <div class="glass card-pad" style="margin-bottom:1.5rem;">
+    <div class="flex-between flex-wrap gap-2">
+      <div>
+        <strong>Your profile is {{ pct }}% complete</strong>
+        <div class="text-muted" style="font-size:.85rem;margin-top:.15rem;">
+          {% if current_user.requires_identity_verification() and not current_user.is_verified() %}Identity verification is required to reach 100%.{% else %}Fill in the remaining fields to reach 100%.{% endif %}
+        </div>
+      </div>
+      <a href="{{ url_for('main.profile_edit') }}" class="btn btn-primary btn-sm">Complete Profile</a>
+    </div>
+    <div style="height:8px;border-radius:6px;background:rgba(128,128,128,.18);margin-top:.8rem;overflow:hidden;">
+      <div style="height:100%;width:{{ pct }}%;background:linear-gradient(90deg,var(--blue-500),var(--green-500));border-radius:6px;"></div>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ============================ FOUNDER ============================ #}
+  {% if current_user.role == 'founder' %}
+    <h2 style="font-size:1.05rem;margin-bottom:.7rem;">Overview</h2>
+    <div class="grid grid-4">
+      {{ stat("Startups", startup_count, "", url_for('startups.list_startups', mine=1)) }}
+      {{ stat("Active Jobs", active_jobs, "", url_for('jobs.list_jobs', mine=1)) }}
+      {{ stat("Applications", applications_received, "", url_for('jobs.received_applications')) }}
+      {{ stat("Pending Requests", pending_requests, "Investment interest", url_for('investment.founder_requests', status="pending")) }}
+    </div>
+
+    <h2 style="font-size:1.05rem;margin:1.8rem 0 .7rem;">Funding</h2>
+    <div class="grid grid-4">
+      {{ money("Agreed Funding", total_expected, "Across active agreements", url_for('investment.founder_requests', status="active")) }}
+      {{ money("Received (net)", total_received, "After platform fees", url_for('investment.transaction_history')) }}
+      {{ money("Held for You", pending_release, "Awaiting milestone release", url_for('investment.transaction_history')) }}
+      {{ money("Not Yet Deposited", awaiting_investor_payment, "Investor hasn't sent", url_for('investment.transaction_history')) }}
+    </div>
+
+    <div class="flex gap-2 flex-wrap" style="margin:1.5rem 0;">
+      <a href="{{ url_for('startups.create') }}" class="btn btn-primary">+ List a Startup</a>
+      <a href="{{ url_for('investment.browse_investors') }}" class="btn btn-primary">Find Investors</a>
+      <a href="{{ url_for('investment.founder_requests') }}" class="btn btn-outline">Investment Requests</a>
+      <a href="{{ url_for('investment.transaction_history') }}" class="btn btn-outline">Transaction History</a>
+      <a href="{{ url_for('main.profile_edit') }}" class="btn btn-outline">Verify Identity</a>
+    </div>
+
+    <div class="grid grid-2">
+      {{ breakdown("Applications by Status", app_breakdown, "No job applications received yet.") }}
+      <div class="glass card-pad">
+        <h3 style="margin-bottom:.9rem;">Your Startups</h3>
+        {% for s in startups %}
+          <div class="flex-between" style="padding:.6rem 0;border-bottom:1px solid var(--glass-border);">
+            <a href="{{ url_for('startups.detail', startup_id=s.id) }}">{{ s.name }}</a>
+            {% if s.document_status == 'approved' %}<span class="badge badge-verified">Verified</span>
+            {% elif s.document_status == 'rejected' %}<span class="badge badge-rejected">Rejected</span>
+            {% else %}<span class="badge badge-pending">Pending review</span>{% endif %}
+          </div>
+        {% else %}
+          <p class="text-muted" style="font-size:.88rem;">You haven't listed a startup yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+  {# ============================ INVESTOR ============================ #}
+  {% elif current_user.role == 'investor' %}
+    <h2 style="font-size:1.05rem;margin-bottom:.7rem;">Overview</h2>
+    <div class="grid grid-3">
+      {{ stat("Interests Sent", sent, "", url_for('investment.investor_requests')) }}
+      {{ stat("Active Agreements", accepted, "Fully signed", url_for('investment.investor_requests', status="active")) }}
+      {{ stat("Connections", connections, "Messaging unlocked", url_for('messaging.inbox')) }}
+    </div>
+
+    <h2 style="font-size:1.05rem;margin:1.8rem 0 .7rem;">Funding</h2>
+    <div class="grid grid-3">
+      {{ money("Total Committed", total_committed, "Across active agreements", url_for('investment.investor_requests', status="active")) }}
+      {{ money("Deposited", total_sent, "Confirmed by VentureBridge", url_for('investment.transaction_history')) }}
+      {{ money("Still To Deposit", total_owed, "Not yet sent", url_for('investment.transaction_history')) }}
+    </div>
+
+    <div class="flex gap-2 flex-wrap" style="margin:1.5rem 0;">
+      <a href="{{ url_for('startups.list_startups') }}" class="btn btn-primary">Browse Startups</a>
+      <a href="{{ url_for('investment.investor_requests') }}" class="btn btn-outline">My Requests</a>
+      <a href="{{ url_for('investment.transaction_history') }}" class="btn btn-outline">Transaction History</a>
+      <a href="{{ url_for('main.profile_edit') }}" class="btn btn-outline">Verify Identity</a>
+    </div>
+
+    {{ breakdown("Your Requests by Stage", req_breakdown, "You haven't sent any investment interest yet.") }}
+
+  {# ============================ JOB SEEKER ============================ #}
+  {% elif current_user.role == 'jobseeker' %}
+    <h2 style="font-size:1.05rem;margin-bottom:.7rem;">Overview</h2>
+    <div class="grid grid-2">
+      {{ stat("Applications Sent", applications_sent, "", url_for('jobs.my_applications')) }}
+      {{ stat("Shortlisted", shortlisted, "Moved forward by a founder", url_for('jobs.my_applications', status="shortlisted")) }}
+    </div>
+
+    <div class="flex gap-2 flex-wrap" style="margin:1.5rem 0;">
+      <a href="{{ url_for('jobs.list_jobs') }}" class="btn btn-primary">Browse Jobs</a>
+      <a href="{{ url_for('jobs.my_applications') }}" class="btn btn-outline">My Applications</a>
+      <a href="{{ url_for('main.profile_edit') }}" class="btn btn-outline">Verify Identity</a>
+    </div>
+
+    {{ breakdown("Your Applications by Status", app_breakdown, "You haven't applied to any jobs yet.") }}
+
+  {# ============================ ADMIN ============================ #}
+  {% elif current_user.role == 'admin' %}
+    <h2 style="font-size:1.05rem;margin-bottom:.7rem;">Platform Overview</h2>
+    <div class="grid grid-4">
+      {{ stat("Total Users", total_users, "", url_for('admin.users')) }}
+      {{ stat("Startups", total_startups, "", url_for('admin.startups')) }}
+      {{ stat("Pending Documents", pending_docs, "Awaiting your review", url_for('admin.document_queue')) }}
+      {{ stat("Pending Verifications", pending_verifications, "Awaiting your review", url_for('admin.verification_queue')) }}
+    </div>
+
+    <h2 style="font-size:1.05rem;margin:1.8rem 0 .7rem;">Funds Under Management</h2>
+    <div class="grid grid-3">
+      {{ money("Currently Held", admin_held, "Deposited, not yet released", url_for('investment.transaction_history')) }}
+      {{ money("Released to Founders", admin_released, "Net of fees", url_for('investment.transaction_history')) }}
+      {{ money("Fees Collected", admin_fees, "Platform revenue", url_for('investment.transaction_history')) }}
+    </div>
+
+    <div class="flex gap-2 flex-wrap" style="margin:1.5rem 0;">
+      <a href="{{ url_for('admin.document_queue') }}" class="btn btn-primary">Document Review Queue</a>
+      <a href="{{ url_for('admin.verification_queue') }}" class="btn btn-outline">Verification Queue</a>
+      <a href="{{ url_for('admin.users') }}" class="btn btn-outline">Manage Users</a>
+      <a href="{{ url_for('investment.transaction_history') }}" class="btn btn-outline">Transaction Ledger</a>
+      <a href="{{ url_for('admin.audit_log') }}" class="btn btn-outline">Audit Log</a>
+    </div>
+
+    <div class="grid grid-2">
+      {{ breakdown("Users by Role", role_breakdown) }}
+      <div class="glass card-pad">
+        <h3 style="margin-bottom:.9rem;">Needs Your Attention</h3>
+        <div class="flex-between" style="padding:.6rem 0;border-bottom:1px solid var(--glass-border);">
+          <span>Startup documents to review</span>
+          <a href="{{ url_for('admin.document_queue') }}"><span class="badge {{ 'badge-pending' if pending_docs else 'badge-outline' }}">{{ pending_docs }}</span></a>
+        </div>
+        <div class="flex-between" style="padding:.6rem 0;border-bottom:1px solid var(--glass-border);">
+          <span>Identity verifications to review</span>
+          <a href="{{ url_for('admin.verification_queue') }}"><span class="badge {{ 'badge-pending' if pending_verifications else 'badge-outline' }}">{{ pending_verifications }}</span></a>
+        </div>
+        <div class="flex-between" style="padding:.6rem 0;">
+          <span>Deposits / milestones to action</span>
+          <a href="{{ url_for('investment.transaction_history') }}"><span class="badge {{ 'badge-pending' if admin_actions_pending else 'badge-outline' }}">{{ admin_actions_pending }}</span></a>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

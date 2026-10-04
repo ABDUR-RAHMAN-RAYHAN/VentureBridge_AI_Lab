@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}My Applications{% endblock %}
+{% block content %}
+<div class="animate-in">
+  <h1>My Applications</h1>
+  <div class="glass card-pad table-wrap">
+    <table>
+      <thead><tr><th>Job</th><th>Startup</th><th>Applied</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for a in apps %}
+        <tr>
+          <td><a href="{{ url_for('jobs.detail', job_id=a.job.id) }}">{{ a.job.title }}</a></td>
+          <td>{{ a.job.startup.name }}</td>
+          <td>{{ a.applied_at.strftime("%Y-%m-%d") }}</td>
+          <td>
+            {% set colors = {"submitted":"badge-blue","reviewing":"badge-pending","shortlisted":"badge-verified","accepted":"badge-verified","rejected":"badge-rejected"} %}
+            <span class="badge {{ colors[a.status] }}">{{ a.status|capitalize }}</span>
+          </td>
+        </tr>
+        {% else %}<tr><td colspan="4" class="text-muted">You haven't applied to any jobs yet.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

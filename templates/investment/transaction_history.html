@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Transaction History{% endblock %}
+{% block content %}
+<div class="animate-in">
+  <h1>Transaction History</h1>
+  <p class="text-muted">
+    {% if current_user.role == 'investor' %}Every milestone across your investments — what you deposited, what VentureBridge has released to founders, and the fee retained on each.
+    {% elif current_user.role == 'admin' %}Every milestone across the platform — deposits held, amounts released to founders, and fees collected.
+    {% else %}Every milestone tied to your startups — what's been released to you after the platform fee, and what's still held.{% endif %}
+  </p>
+
+  <div class="glass card-pad table-wrap">
+    <table>
+      <thead>
+        <tr>
+          {% if current_user.role == 'admin' %}<th>Startup</th><th>Investor</th>
+          {% else %}<th>{{ "Startup" if current_user.role == "investor" else "Investor" }}</th>{% endif %}
+          <th>Milestone</th>
+          <th>Gross</th>
+          <th>Fee</th>
+          <th>Net to Founder</th>
+          <th>Status</th>
+          <th>Released</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        {% set m = row.milestone %}
+        {% set a = row.agreement %}
+        <tr>
+          {% if current_user.role == 'admin' %}
+            <td>{{ row.request.startup.name }}</td>
+            <td>{{ row.request.investor.full_name }}</td>
+          {% else %}
+            <td>{% if current_user.role == 'investor' %}{{ row.request.startup.name }}{% else %}{{ row.request.investor.full_name }}{% endif %}</td>
+          {% endif %}
+          <td>{{ m.title }}
+            {% if m.proof_uploaded_at %}<br><span class="text-muted" style="font-size:.75rem;">📎
+              <a href="{{ url_for('static', filename='uploads/' ~ m.proof_document_filename) }}" target="_blank">proof attached</a></span>{% endif %}
+          </td>
+          <td>${{ "%.2f"|format(m.amount) }}</td>
+          <td class="text-muted">${{ "%.2f"|format(m.platform_fee_amount()) }}</td>
+          <td><strong>${{ "%.2f"|format(m.net_to_founder()) }}</strong></td>
+          <td>
+            {% if m.status == 'released' %}<span class="badge badge-verified">Released</span>
+            {% elif not a.admin_confirmed_deposit_at %}<span class="badge badge-outline">Awaiting deposit</span>
+            {% elif m.is_next_in_sequence() %}<span class="badge badge-pending">Next in line</span>
+            {% else %}<span class="badge badge-outline">Queued</span>{% endif %}
+          </td>
+          <td>{{ m.released_at.strftime("%Y-%m-%d") if m.released_at else "—" }}</td>
+          <td><a href="{{ url_for('investment.agreement', req_id=row.request.id) }}">View</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="{{ 9 if current_user.role == 'admin' else 8 }}" class="text-muted">No milestones yet — these appear once an investment agreement is signed.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

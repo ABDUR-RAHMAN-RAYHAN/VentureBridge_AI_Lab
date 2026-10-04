@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}My Profile{% endblock %}
+{% block content %}
+<div class="glass card-pad animate-in" style="max-width:640px;margin:0 auto;">
+  <div class="flex-between">
+    <div class="flex gap-2">
+      {% if profile.photo %}<img src="{{ url_for('static', filename='uploads/' ~ profile.photo) }}" class="avatar" style="width:64px;height:64px;">
+      {% else %}<div class="avatar" style="width:64px;height:64px;background:linear-gradient(135deg,var(--blue-500),var(--green-500));"></div>{% endif %}
+      <div>
+        <h1 style="margin-bottom:.15rem;">{{ current_user.full_name }}</h1>
+        <span class="badge badge-blue">{{ current_user.role|capitalize }}</span>
+        {% if current_user.requires_identity_verification() and current_user.is_verified() %}<span class="badge badge-verified">✓ Identity Verified</span>{% endif %}
+      </div>
+    </div>
+    <a href="{{ url_for('main.profile_edit') }}" class="btn btn-primary btn-sm">Edit Profile</a>
+  </div>
+
+  {% set pct = profile.completion_percent() %}
+  <div style="margin:1.2rem 0;">
+    <p class="text-muted" style="margin-bottom:.4rem;">Profile completion: <strong>{{ pct }}%</strong>
+      {% if pct < 100 and current_user.requires_identity_verification() %}<span class="text-muted" style="font-size:.8rem;">(includes identity verification)</span>{% endif %}</p>
+    <div style="height:8px;border-radius:6px;background:rgba(255,255,255,.2);overflow:hidden;">
+      <div style="height:100%;width:{{ pct }}%;background:linear-gradient(90deg,var(--blue-500),var(--green-500));"></div>
+    </div>
+  </div>
+
+  <hr class="divider">
+  <div class="grid grid-2">
+    <div><strong>Phone</strong><br><span class="text-muted">{{ profile.phone or "—" }}</span></div>
+    <div><strong>Location</strong><br><span class="text-muted">{{ profile.location or "—" }}</span></div>
+    <div><strong>Education</strong><br><span class="text-muted">{{ profile.education or "—" }}</span></div>
+    <div><strong>Experience</strong><br><span class="text-muted">{{ profile.experience or "—" }}</span></div>
+    <div><strong>Industry</strong><br><span class="text-muted">{{ profile.industry or "—" }}</span></div>
+  </div>
+  <div style="margin-top:.8rem;"><strong>Bio</strong><br><span class="text-muted">{{ profile.bio or "—" }}</span></div>
+  <div style="margin-top:.8rem;"><strong>Skills</strong><br><span class="text-muted">{{ profile.skills or "—" }}</span></div>
+  <div style="margin-top:.8rem;"><strong>Interests</strong><br><span class="text-muted">{{ profile.interests or "—" }}</span></div>
+
+  {% if current_user.requires_identity_verification() %}
+  <hr class="divider">
+  <h3>Identity Verification</h3>
+  {% if current_user.is_verified() %}
+    <span class="badge badge-verified">✓ Verified</span>
+  {% else %}
+    <span class="badge badge-pending">Not yet verified</span>
+    <a href="{{ url_for('main.profile_edit') }}" style="margin-left:.5rem;">Complete verification →</a>
+  {% endif %}
+  {% if verification_history %}
+  <div class="table-wrap" style="margin-top:.8rem;">
+    <table>
+      <thead><tr><th>Type</th><th>Status</th><th>Submitted</th><th>Reason</th></tr></thead>
+      <tbody>
+        {% for v in verification_history %}
+        <tr>
+          <td>{{ v.doc_type }}</td>
+          <td>
+            {% if v.status == 'approved' %}<span class="badge badge-verified">Approved</span>
+            {% elif v.status == 'rejected' %}<span class="badge badge-rejected">Rejected</span>
+            {% else %}<span class="badge badge-pending">Pending</span>{% endif %}
+          </td>
+          <td>{{ v.submitted_at.strftime("%Y-%m-%d") }}</td>
+          <td>{{ v.reason or "—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

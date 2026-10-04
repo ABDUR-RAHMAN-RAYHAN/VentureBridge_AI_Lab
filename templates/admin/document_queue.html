@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Document Review Queue{% endblock %}
+{% block content %}
+<div class="animate-in">
+  <h1>Startup Document Review Queue</h1>
+  {% for d in pending %}
+  <div class="glass card-pad" style="margin-bottom:1.2rem;">
+    <div class="flex-between flex-wrap gap-2">
+      <div>
+        <strong>{{ d.startup.name }}</strong> — {{ d.doc_type }}<br>
+        <span class="text-muted" style="font-size:.85rem;">Founder: {{ d.startup.founder.full_name }} · Uploaded {{ d.uploaded_at.strftime("%Y-%m-%d") }}</span>
+      </div>
+      <a href="{{ url_for('static', filename='uploads/' ~ d.filename) }}" target="_blank" class="btn btn-outline btn-sm">View File</a>
+    </div>
+    <form method="POST" action="{{ url_for('admin.decide_document', doc_id=d.id) }}" class="flex gap-2 flex-wrap" style="margin-top:.8rem;" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="decision" id="decision_{{d.id}}" value="">
+      <input type="text" name="reason" placeholder="Reason (required if rejecting)" style="flex:1;min-width:220px;">
+      <button type="submit" class="btn btn-green btn-sm" onclick="document.getElementById('decision_{{d.id}}').value='approved';">Approve</button>
+      <button type="submit" class="btn btn-danger btn-sm" onclick="document.getElementById('decision_{{d.id}}').value='rejected';">Reject</button>
+    </form>
+  </div>
+  {% else %}
+  <p class="text-muted">No pending documents to review.</p>
+  {% endfor %}
+</div>
+{% endblock %}

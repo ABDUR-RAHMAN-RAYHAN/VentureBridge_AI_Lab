@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<section class="hero animate-in">
+  <h1 class="gradient-text">Connecting Ideas, People, Investment,<br>and Opportunities — Verifiably.</h1>
+  <p>VentureBridge brings Founders, Investors, and Job Seekers together on one trust-first platform —
+     every startup verified, every document reviewed, every connection real.</p>
+  <div class="flex gap-2" style="justify-content:center;">
+    <a href="{{ url_for('auth.register') }}" class="btn btn-primary">Get Started</a>
+    <a href="{{ url_for('startups.list_startups') }}" class="btn btn-outline">Explore Startups</a>
+  </div>
+</section>
+
+<section class="grid grid-4 animate-on-scroll" style="margin-top:2rem;">
+  <div class="glass stat-card hover-lift"><div class="stat-label">Members</div><div class="stat-value">{{ stats.members }}</div></div>
+  <div class="glass stat-card hover-lift"><div class="stat-label">Active Startups</div><div class="stat-value">{{ stats.startups }}</div></div>
+  <div class="glass stat-card hover-lift"><div class="stat-label">Open Jobs</div><div class="stat-value">{{ stats.jobs }}</div></div>
+  <div class="glass stat-card hover-lift"><div class="stat-label">Document-Verified</div><div class="stat-value">{{ stats.verified_startups }}</div></div>
+</section>
+
+<section style="margin-top:3rem;">
+  <h2>Featured Startups</h2>
+  <div class="grid grid-3 animate-on-scroll">
+    {% for s in featured %}
+    <div class="glass card-pad hover-lift">
+      <div class="flex gap-2">
+        {% if s.logo %}<img src="{{ url_for('static', filename='uploads/' ~ s.logo) }}" class="startup-logo">
+        {% else %}<div class="startup-logo" style="background:linear-gradient(135deg,var(--blue-500),var(--green-500));"></div>{% endif %}
+        <div>
+          <strong>{{ s.name }}</strong><br>
+          <span class="text-muted" style="font-size:.82rem;">{{ s.industry }} · {{ s.location }}</span>
+        </div>
+      </div>
+      <p class="text-muted" style="margin:.7rem 0;font-size:.9rem;">{{ s.description[:110] }}{% if s.description|length > 110 %}…{% endif %}</p>
+      <div class="flex gap-1" style="margin-bottom:.7rem;">
+        {% if s.document_status == 'approved' %}<span class="badge badge-verified">Documents Verified</span>
+        {% else %}<span class="badge badge-pending">Pending Review</span>{% endif %}
+      </div>
+      <a href="{{ url_for('startups.detail', startup_id=s.id) }}" class="btn btn-outline btn-sm">View Profile</a>
+    </div>
+    {% else %}
+    <p class="text-muted">No startups yet — be the first to list one!</p>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="glass card-pad animate-on-scroll" style="margin-top:3rem;">
+  <h2>Trust is the product</h2>
+  <p class="text-muted">Every startup on VentureBridge is required to submit a Trade License before it can go live,
+     and every document is reviewed by a human admin before a "Documents Verified" badge appears. Identity verification
+     for individuals requires three live-captured photos, not just an uploaded scan, to reduce impersonation.
+     Every approval, rejection, and financial milestone release is written to an audit trail.</p>
+</section>
+
+<section class="hero animate-on-scroll">
+  <h2>Ready to build something real?</h2>
+  <a href="{{ url_for('auth.register') }}" class="btn btn-primary">Join VentureBridge</a>
+</section>
+{% endblock %}
