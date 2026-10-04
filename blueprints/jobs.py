@@ -4,7 +4,7 @@ from extensions import db
 from models import Job, Startup, JobApplication
 from forms import JobForm, JobApplicationForm
 from decorators import roles_required
-from utils import save_upload, log_action, is_upload
+from utils import save_upload, log_action, notify
 
 bp = Blueprint("jobs", __name__, url_prefix="/jobs")
 
@@ -124,6 +124,9 @@ def apply(job_id):
         db.session.commit()
         log_action("job_application_submitted", f"job_id={job.id}")
         flash("Application submitted!", "success")
+        notify(job.startup.founder_id, "New job application",
+               f"{current_user.full_name} applied for '{job.title}'.",
+               url_for("jobs.applications", job_id=job.id))
     else:
         flash("Please attach a CV/resume and a cover message.", "danger")
     return redirect(url_for("jobs.detail", job_id=job.id))
@@ -154,6 +157,9 @@ def update_application_status(app_id):
     db.session.commit()
     log_action("application_status_changed", f"app_id={application.id} status={new_status}")
     flash("Application status updated.", "success")
+    notify(application.applicant_id, "Application status updated",
+           f"Your application for '{application.job.title}' is now '{new_status}'.",
+           url_for("jobs.my_applications"))
     return redirect(url_for("jobs.applications", job_id=application.job_id))
 
 
@@ -162,25 +168,18 @@ def update_application_status(app_id):
 @roles_required("founder")
 def received_applications():
     """Every application across all of this founder's jobs (dashboard card target)."""
-    status = request.args.get("status", "").strip()
     startup_ids = [s.id for s in current_user.startups]
+    apps = []
     if startup_ids:
-        query = JobApplication.query.join(Job).filter(Job.startup_id.in_(startup_ids))
-        if status:
-            query = query.filter(JobApplication.status == status)
-        apps = query.order_by(JobApplication.applied_at.desc()).all()
-    else:
-        apps = []
-    return render_template("jobs/applications_received.html", apps=apps, status=status)
+        apps = JobApplication.query.join(Job).filter(Job.startup_id.in_(startup_ids)).order_by(
+            JobApplication.applied_at.desc()).all()
+    return render_template("jobs/applications_received.html", apps=apps)
 
 
 @bp.route("/my-applications")
 @login_required
 @roles_required("jobseeker")
 def my_applications():
-    status = request.args.get("status", "").strip()
-    query = JobApplication.query.filter_by(applicant_id=current_user.id)
-    if status:
-        query = query.filter_by(status=status)
-    apps = query.order_by(JobApplication.applied_at.desc()).all()
-    return render_template("jobs/applications_seeker.html", apps=apps, status=status)
+    apps = JobApplication.query.filter_by(applicant_id=current_user.id).order_by(
+        JobApplication.applied_at.desc()).all()
+    return render_template("jobs/applications_seeker.html", apps=apps)

@@ -4,7 +4,7 @@ from flask_login import login_required, current_user
 from extensions import db
 from models import (User, Startup, Job, StartupDocument, IdentityVerification, AuditLog)
 from decorators import roles_required
-from utils import log_action
+from utils import log_action, notify
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -42,6 +42,9 @@ def toggle_user(user_id):
     db.session.commit()
     log_action("user_status_toggled", f"user_id={user.id} active={user.is_active_account}")
     flash(f"{user.full_name} is now {'active' if user.is_active_account else 'deactivated'}.", "success")
+    notify(user.id, "Account activated" if user.is_active_account else "Account deactivated",
+           "Your account has been reactivated by an administrator." if user.is_active_account
+           else "Your account has been deactivated by an administrator.")
     return redirect(url_for("admin.users"))
 
 
@@ -105,6 +108,9 @@ def decide_verification(v_id):
     db.session.commit()
     log_action("identity_verification_reviewed", f"verification_id={v.id} decision={decision}")
     flash(f"Verification {decision}.", "success")
+    notify(v.user_id, f"Identity verification {decision}",
+           reason if decision == "rejected" else "Your identity verification has been approved.",
+           url_for("main.profile_edit"))
     return redirect(url_for("admin.verification_queue"))
 
 
@@ -133,6 +139,9 @@ def decide_document(doc_id):
     doc.startup.refresh_document_status()
     log_action("startup_document_reviewed", f"document_id={doc.id} decision={decision} startup_id={doc.startup_id}")
     flash(f"Document {decision}.", "success")
+    notify(doc.startup.founder_id, f"Startup document {decision}",
+           reason if decision == "rejected" else f"Your '{doc.doc_type}' document for {doc.startup.name} has been approved.",
+           url_for("startups.detail", startup_id=doc.startup_id))
     return redirect(url_for("admin.document_queue"))
 
 

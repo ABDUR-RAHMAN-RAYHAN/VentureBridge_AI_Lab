@@ -1,11 +1,17 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, abort
 from flask_login import login_required, current_user
 from extensions import db
-from models import Startup, StartupDocument, InvestmentRequest, Connection
+from models import Startup, StartupDocument, InvestmentRequest, Connection, User
 from forms import StartupForm, StartupDocumentForm, InvestmentRequestForm
 from decorators import roles_required
-from utils import save_upload, log_action, is_upload
+from utils import save_upload, log_action, is_upload, notify
 from algorithms.knn_recommender import find_similar_startups
+
+
+def _notify_admins(title, message="", url=None):
+    """Notifies every active admin — used for queue items that need admin review."""
+    for admin in User.query.filter_by(role="admin", is_active_account=True).all():
+        notify(admin.id, title, message, url)
 
 bp = Blueprint("startups", __name__, url_prefix="/startups")
 
@@ -83,7 +89,7 @@ def create():
         return redirect(url_for("main.profile_edit"))
     form = StartupForm()
     if form.validate_on_submit():
-        if not is_upload(form.trade_license.data):
+        if not form.trade_license.data:
             flash("A Trade License document is required to publish a startup.", "danger")
             return render_template("startups/form.html", form=form, mode="create")
         startup = Startup(
@@ -111,6 +117,9 @@ def create():
         log_action("startup_created", f"startup_id={startup.id} name={startup.name}")
         flash("Startup created! It is now public but flagged 'Pending Document Review' "
               "until an admin approves your Trade License.", "success")
+        _notify_admins("New startup document to review",
+                        f"'{startup.name}' submitted a Trade License and is awaiting review.",
+                        url_for("admin.document_queue"))
         return redirect(url_for("startups.detail", startup_id=startup.id))
     return render_template("startups/form.html", form=form, mode="create")
 
@@ -165,6 +174,9 @@ def documents(startup_id):
         db.session.commit()
         log_action("startup_document_uploaded", f"startup_id={startup.id} type={form.doc_type.data}")
         flash("Document submitted for admin review.", "success")
+        _notify_admins("New startup document to review",
+                        f"'{startup.name}' submitted a {form.doc_type.data} and is awaiting review.",
+                        url_for("admin.document_queue"))
         return redirect(url_for("startups.documents", startup_id=startup.id))
     docs = startup.documents.order_by(StartupDocument.uploaded_at.desc()).all()
     return render_template("startups/documents.html", startup=startup, form=form, docs=docs)
