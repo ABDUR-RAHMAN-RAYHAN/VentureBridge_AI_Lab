@@ -275,6 +275,75 @@ milestone now goes through four explicit, auditable stages:
 - All of these actions are logged to the audit trail (`milestone_marked_sent`,
   `milestone_receipt_confirmed`, `milestone_released`, `milestone_proof_uploaded`).
 
+## Recent changes (latest revision)
+
+**1. Signatures are now uploaded files, not typed text — and gate the download:**
+- `SignatureForm` no longer takes a typed "legal name" — both the founder and the investor must
+  **upload their signed copy** (a PDF, or a photo/scan of a wet signature, PNG/JPG) on the Sign
+  Agreement page. Files are saved with randomized server-side filenames under
+  `static/uploads/signatures/`.
+- `Agreement.founder_signature_filename` / `Agreement.investor_signature_filename` replace the old
+  `founder_signed_name` / `investor_signed_name` text columns.
+- The **agreement document (print/PDF view) is now fully locked until both signatures are in**:
+  before that, the page only shows a signing-status banner and a "Sign Now" link — the full
+  contract body, the "Print / Save as PDF" button, and any fund-deposit/milestone controls are not
+  rendered at all. Once `agreement.is_fully_signed()` is true, the full document renders, uploaded
+  signatures are shown inline (an image preview for PNG/JPG, a "View signed PDF" link for PDFs),
+  and the Print/Save-as-PDF button becomes active.
+
+**2. Navbar notification center, for every role:**
+- New `Notification` model + `notify(user_id, title, message, url)` helper (`utils.py`) that
+  creates an in-app notification without ever raising — a notification failure never breaks the
+  action that triggered it.
+- A 🔔 bell icon now sits in the navbar for every logged-in user, with an unread-count badge and a
+  dropdown (`/notifications/feed`) showing the most recent notifications; **"View all"** opens the
+  full, paginated `/notifications` page. Clicking a notification marks it read and opens its link.
+- Wired into every major event across the app: account activated/deactivated, identity verification
+  approved/rejected, startup document approved/rejected, new investment interest sent/declined, a
+  funding proposal submitted/revised/accepted, an agreement generated/awaiting a signature/fully
+  signed, an investor's deposit sent/confirmed, a milestone released, a new job application, and a
+  job application status change.
+- **Every active admin is notified the moment something lands in a review queue**, not just the
+  other roles: a founder/investor submitting NID + live-photo identity verification notifies every
+  admin with a link straight to the **Verification Queue**, and a founder submitting a startup
+  document (the initial Trade License, or any later document from the startup's Documents page)
+  notifies every admin with a link straight to the **Document Review Queue**. Admins no longer have
+  to remember to manually check those queues on every login — the bell tells them there's work
+  waiting.
+
+**3. Dashboard is now the first navbar link:**
+- For logged-in users the navbar order is now **Dashboard → Startups → Jobs → Messages → Profile →
+  🔔 → Logout**, instead of Startups coming first.
+
+**4. Strong password requirements:**
+- Passwords (registration and password reset) must now contain at least one uppercase letter, one
+  lowercase letter, one digit, and one special character, in addition to the existing 8-character
+  minimum. Each missing requirement is reported individually (e.g. "Password must contain at least
+  one special character").
+- Demo account passwords were updated accordingly — see **Demo credentials** below.
+
+**Also fixed in this revision:**
+- A crash (`AttributeError: 'str' object has no attribute 'filename'`) when saving the profile, or
+  creating/editing a startup, with an existing photo/logo and no new file chosen. WTForms can leave
+  a `FileField`'s `.data` populated with the already-stored filename (a plain string) rather than
+  leaving it empty; the three call sites that pass a FileField's data into `save_upload()` (profile
+  photo, startup logo on create, startup logo on edit) now guard with `hasattr(data, "filename")`
+  first, and `save_upload()` itself was hardened the same way as a second line of defense.
+- The navbar notification dropdown was being visually clipped by the navbar's own glass-effect
+  container (`overflow:hidden`, needed for its glossy sheen). The navbar now uses `overflow:visible`
+  with the sheen's rounding moved onto the sheen element itself, so the dropdown panel floats
+  properly below the bell instead of being trapped inside the navbar's box.
+- Static assets (`style.css`, `main.js`, `theme-init.js`) are now served with a cache-busting
+  `?v=<last-modified-time>` query string (see `asset_url()` in `app.py`), so a browser that already
+  has the site open always picks up the latest CSS/JS after a deploy instead of silently continuing
+  to run a stale cached copy.
+- Clicking a notification in the dropdown silently did nothing: the list was built by concatenating
+  an `onclick="vbOpenNotification(..., "/some/url")"` string, and the double quotes from
+  `JSON.stringify()` collided with the attribute's own double quotes, corrupting the markup. The
+  dropdown is now built as real DOM nodes with an attached click listener instead of an HTML string,
+  which also makes it safe for any future notification title/message/URL regardless of what
+  characters it contains.
+
 ## Notes on scope
 
 - This is not a real payment/financial transaction system — the milestone "funding" workflow
