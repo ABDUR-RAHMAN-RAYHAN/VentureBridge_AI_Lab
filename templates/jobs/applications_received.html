@@ -10,15 +10,6 @@
     <a href="{{ url_for('jobs.list_jobs', mine=1) }}" class="btn btn-outline btn-sm">My Job Posts</a>
   </div>
 
-  <div class="flex gap-1 flex-wrap" style="margin-bottom:1rem;">
-    <a href="{{ url_for('jobs.received_applications') }}"
-       class="btn btn-sm {{ 'btn-primary' if not status else 'btn-outline' }}">All</a>
-    {% for s in ["submitted","reviewing","shortlisted","accepted","rejected"] %}
-    <a href="{{ url_for('jobs.received_applications', status=s) }}"
-       class="btn btn-sm {{ 'btn-primary' if status == s else 'btn-outline' }}">{{ s|capitalize }}</a>
-    {% endfor %}
-  </div>
-
   <div class="glass card-pad table-wrap">
     <table>
       <thead><tr><th>Applicant</th><th>Job</th><th>CV</th><th>Cover Message</th><th>Applied</th><th>Status</th></tr></thead>

@@ -9,13 +9,19 @@
     <div class="glass card-pad" style="padding:1rem;">
       <strong>Founder</strong><br>{{ req.startup.founder.full_name }}<br>
       {% if agreement.founder_signed_at %}
-        <span class="badge badge-verified">Signed {{ agreement.founder_signed_at.strftime("%Y-%m-%d %H:%M") }}</span>
+        <span class="badge badge-verified">Signed {{ agreement.founder_signed_at.strftime("%Y-%m-%d %H:%M") }}</span><br>
+        {% if agreement.founder_signature_filename %}
+          <a href="{{ url_for('static', filename='uploads/signatures/' ~ agreement.founder_signature_filename) }}" target="_blank" style="font-size:.8rem;">View uploaded signature</a>
+        {% endif %}
       {% else %}<span class="badge badge-pending">Awaiting Signature</span>{% endif %}
     </div>
     <div class="glass card-pad" style="padding:1rem;">
       <strong>Investor</strong><br>{{ req.investor.full_name }}<br>
       {% if agreement.investor_signed_at %}
-        <span class="badge badge-verified">Signed {{ agreement.investor_signed_at.strftime("%Y-%m-%d %H:%M") }}</span>
+        <span class="badge badge-verified">Signed {{ agreement.investor_signed_at.strftime("%Y-%m-%d %H:%M") }}</span><br>
+        {% if agreement.investor_signature_filename %}
+          <a href="{{ url_for('static', filename='uploads/signatures/' ~ agreement.investor_signature_filename) }}" target="_blank" style="font-size:.8rem;">View uploaded signature</a>
+        {% endif %}
       {% else %}<span class="badge badge-pending">Awaiting Signature</span>{% endif %}
     </div>
   </div>
@@ -30,13 +36,19 @@
   {% else %}
     <hr class="divider">
     <p class="text-muted" style="font-size:.85rem;">By signing, you confirm you have read the agreement document and
-      agree to its terms, including the milestone-based funding schedule and disclaimer.</p>
-    <form method="POST" novalidate onsubmit="document.getElementById('confirmField').value='yes';">
+      agree to its terms, including the milestone-based funding schedule and disclaimer. Upload a PDF, or a photo/scan
+      of your signed copy, as your signature — a typed name is not accepted. The agreement cannot be downloaded or
+      printed until both parties have uploaded their signatures.</p>
+    <form method="POST" enctype="multipart/form-data" novalidate onsubmit="document.getElementById('confirmField').value='yes';">
       {{ form.csrf_token }}
-      <div class="form-group">{{ form.signed_name.label }} {{ form.signed_name(placeholder=(req.startup.founder.full_name if is_founder else req.investor.full_name)) }}</div>
+      <div class="form-group">
+        {{ form.signature_document.label }}
+        {{ form.signature_document(accept=".pdf,.png,.jpg,.jpeg") }}
+        {% for e in form.signature_document.errors %}<div class="form-error">{{ e }}</div>{% endfor %}
+      </div>
       {{ form.confirm(id="confirmField") }}
       <label class="flex gap-1"><input type="checkbox" required style="width:auto;"> I agree to the terms of this agreement</label>
-      <button class="btn btn-green" style="margin-top:1rem;" type="submit">Sign Agreement</button>
+      <button class="btn btn-green" style="margin-top:1rem;" type="submit">Upload Signature &amp; Sign Agreement</button>
     </form>
   {% endif %}
 </div>
