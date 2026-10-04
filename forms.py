@@ -136,6 +136,12 @@ class InvestmentRequestForm(FlaskForm):
     message = TextAreaField("Message to founder", validators=[DataRequired(), Length(max=2000)])
 
 
+class InvestorApproachForm(FlaskForm):
+    """A founder reaching out to a specific (verified) investor."""
+    startup_id = SelectField("Which of your startups is this for?", coerce=int, validators=[DataRequired()])
+    message = TextAreaField("Message to investor", validators=[DataRequired(), Length(max=2000)])
+
+
 class FinancialProposalForm(FlaskForm):
     total_amount = FloatField("Total Funding Requested (USD)", validators=[DataRequired(), NumberRange(min=1)])
     notes = TextAreaField("Overall Justification", validators=[DataRequired(), Length(max=3000)],

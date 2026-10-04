@@ -121,6 +121,13 @@ def dashboard():
         ctx["awaiting_investor_payment"] = sum(
             float(a.funding_amount) for a in active if not a.admin_confirmed_deposit_at)
 
+        already_contacted = {r.investor_id for r in InvestmentRequest.query.filter(
+            InvestmentRequest.startup_id.in_(startup_ids)).all()} if startup_ids else set()
+        ctx["suggested_investors"] = [
+            u for u in User.query.filter_by(role="investor", is_active_account=True).order_by(User.full_name).all()
+            if u.is_verified() and u.id not in already_contacted
+        ][:3]
+
     elif current_user.role == "investor":
         reqs = InvestmentRequest.query.filter_by(investor_id=current_user.id)
         ctx["sent"] = reqs.count()

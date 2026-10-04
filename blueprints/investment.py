@@ -5,7 +5,8 @@ from flask_login import login_required, current_user
 from extensions import db
 from models import (InvestmentRequest, Startup, Connection, Agreement, FundingMilestone,
                      FundingProposal, FundingProposalItem, User)
-from forms import InvestmentRequestForm, AgreementForm, FinancialProposalForm, SignatureForm, MilestoneProofForm
+from forms import (InvestmentRequestForm, InvestorApproachForm, AgreementForm,
+                    FinancialProposalForm, SignatureForm, MilestoneProofForm)
 from decorators import roles_required
 from utils import log_action, make_reference_no, save_upload, notify
 from config import Config
@@ -35,6 +36,72 @@ def _guard_party(req):
     allowed = current_user.role == "admin" or current_user.id in (req.investor_id, req.startup.founder_id)
     if not allowed:
         abort(404)  # don't reveal the request exists to unrelated users
+
+
+# =========================================================
+# Founder browses verified investors and approaches one directly.
+# This only adds a new *entry point* — the request this creates is the
+# same InvestmentRequest, in the same "pending" state, that the existing
+# founder_requests / submit_proposal / reject flow below already handles.
+# Nothing past this point changes.
+# =========================================================
+@bp.route("/investors")
+@login_required
+@roles_required("founder")
+def browse_investors():
+    q = request.args.get("q", "").strip()
+    query = User.query.filter_by(role="investor", is_active_account=True)
+    if q:
+        query = query.filter(User.full_name.ilike(f"%{q}%"))
+    investors = [u for u in query.order_by(User.full_name).all() if u.is_verified()]
+
+    startup_ids = [s.id for s in current_user.startups]
+    already_contacted = {r.investor_id for r in InvestmentRequest.query.filter(
+        InvestmentRequest.startup_id.in_(startup_ids)).all()} if startup_ids else set()
+
+    return render_template("investment/investors.html", investors=investors, q=q,
+                            already_contacted=already_contacted)
+
+
+@bp.route("/investors/<int:investor_id>/approach", methods=["GET", "POST"])
+@login_required
+@roles_required("founder")
+def approach_investor(investor_id):
+    investor = User.query.filter_by(id=investor_id, role="investor", is_active_account=True).first_or_404()
+    if not investor.is_verified():
+        abort(404)  # only verified investors are approachable
+    if not current_user.is_verified():
+        flash("You need an approved identity verification before you can contact an investor. "
+              "Submit your NID and live photo verification first.", "warning")
+        return redirect(url_for("main.profile_edit"))
+
+    my_startups = current_user.startups.all()
+    if not my_startups:
+        flash("List a startup before reaching out to an investor.", "warning")
+        return redirect(url_for("startups.create"))
+
+    form = InvestorApproachForm()
+    form.startup_id.choices = [(s.id, s.name) for s in my_startups]
+
+    if form.validate_on_submit():
+        startup = next((s for s in my_startups if s.id == form.startup_id.data), None)
+        if not startup:
+            abort(400)
+        if InvestmentRequest.query.filter_by(investor_id=investor.id, startup_id=startup.id).first():
+            flash("You have already reached out to this investor for this startup.", "warning")
+            return redirect(url_for("investment.browse_investors"))
+
+        req = InvestmentRequest(investor_id=investor.id, startup_id=startup.id, message=form.message.data)
+        db.session.add(req)
+        db.session.commit()
+        log_action("investment_outreach_sent", f"startup_id={startup.id} investor_id={investor.id}")
+        notify(investor.id, "New investment request",
+               f"{current_user.full_name} would like you to consider investing in {startup.name}.",
+               url_for("investment.investor_requests"))
+        flash(f"Your investment request has been sent to {investor.full_name}.", "success")
+        return redirect(url_for("investment.founder_requests"))
+
+    return render_template("investment/approach_investor.html", form=form, investor=investor)
 
 
 # =========================================================
