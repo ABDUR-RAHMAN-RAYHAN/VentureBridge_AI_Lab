@@ -62,29 +62,15 @@ class Profile(db.Model):
     skills = db.Column(db.String(500))       # comma-separated
     interests = db.Column(db.String(500))    # comma-separated
 
-    # Weights reflect how much each field matters to a usable profile, and
-    # sum to 100. Identity verification (worth 20) only applies to roles
-    # that go through that flow; for those that don't (admins), its weight
-    # is folded back proportionally into the other fields so 100% is still
-    # reachable from the fields alone.
-    FIELD_WEIGHTS = {
-        "bio": 12, "experience": 12, "skills": 12,
-        "photo": 8, "location": 8, "education": 8, "industry": 8, "interests": 8,
-        "phone": 4,
-    }
-    VERIFICATION_WEIGHT = 20
-
     def completion_percent(self):
-        weights = self.FIELD_WEIGHTS
+        fields = [self.photo, self.phone, self.bio, self.location,
+                  self.education, self.experience, self.industry, self.skills, self.interests]
+        filled = sum(1 for f in fields if f)
         needs_verification = self.user and self.user.requires_identity_verification()
-        if not needs_verification:
-            scale = 100 / (100 - self.VERIFICATION_WEIGHT)
-            weights = {field: w * scale for field, w in weights.items()}
-
-        earned = sum(w for field, w in weights.items() if getattr(self, field))
+        total = len(fields) + (1 if needs_verification else 0)
         if needs_verification and self.user.is_verified():
-            earned += self.VERIFICATION_WEIGHT
-        return int(round(earned))
+            filled += 1
+        return int((filled / total) * 100)
 
 
 class Startup(db.Model):
@@ -176,10 +162,6 @@ class InvestmentRequest(db.Model):
     investor_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     startup_id = db.Column(db.Integer, db.ForeignKey("startup.id"), nullable=False)
     message = db.Column(db.Text, nullable=False)
-    # Who started this request: "investor" (classic — expresses interest with just a
-    # message; the founder proposes a funding breakdown afterwards) or "founder"
-    # (a direct funding ask that already states an amount and equity/share offer).
-    initiated_by = db.Column(db.String(10), nullable=False, default="investor")
     # pending -> rejected
     #         -> awaiting_investor_review (founder submitted a funding proposal)
     #         -> awaiting_founder_review (investor countered with changes)
@@ -198,10 +180,6 @@ class InvestmentRequest(db.Model):
     def latest_proposal(self):
         return self.proposals.order_by(FundingProposal.version.desc()).first()
 
-    def is_equity_ask(self):
-        """True for a founder-initiated request: amount + equity%, no itemized breakdown."""
-        return self.initiated_by == "founder"
-
 
 class FundingProposal(db.Model):
     """
@@ -215,10 +193,6 @@ class FundingProposal(db.Model):
     version = db.Column(db.Integer, nullable=False, default=1)
     proposed_by_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     total_amount = db.Column(db.Numeric(14, 2), nullable=False)
-    # Equity/share percentage offered in exchange for total_amount. Only set on
-    # founder-initiated ("equity ask") requests — null for the classic,
-    # item-breakdown flow.
-    equity_percent = db.Column(db.Float)
     notes = db.Column(db.Text)
     # pending = awaiting the other party's decision; superseded = a later version replaced it; accepted = final
     status = db.Column(db.String(20), default="pending")
@@ -245,9 +219,12 @@ class Agreement(db.Model):
     status = db.Column(db.String(20), default="awaiting_signatures")  # awaiting_signatures -> active
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    founder_signed_name = db.Column(db.String(150))
+    # Signatures are uploaded files (PDF or a photo of a signed copy), not
+    # typed text, and the agreement cannot be downloaded/printed until both
+    # parties have uploaded theirs (see is_fully_signed()).
+    founder_signature_filename = db.Column(db.String(255))
     founder_signed_at = db.Column(db.DateTime)
-    investor_signed_name = db.Column(db.String(150))
+    investor_signature_filename = db.Column(db.String(255))
     investor_signed_at = db.Column(db.DateTime)
 
     # The investor deposits the FULL funding amount once, up front. VentureBridge
@@ -410,3 +387,20 @@ class PasswordReset(db.Model):
                             expires_at=datetime.utcnow() + timedelta(hours=1))
         db.session.add(pr)
         return pr
+
+
+class Notification(db.Model):
+    """
+    In-app notifications shown from the navbar bell, for every role:
+    document/verification decisions, investment negotiation events,
+    signatures, fund releases, job application updates, etc.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    title = db.Column(db.String(150), nullable=False)
+    message = db.Column(db.String(500))
+    url = db.Column(db.String(255))  # where clicking the notification should go
+    is_read = db.Column(db.Boolean, default=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    user = db.relationship("User", foreign_keys=[user_id], backref="notifications")

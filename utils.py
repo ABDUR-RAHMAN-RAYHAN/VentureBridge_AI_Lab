@@ -14,13 +14,13 @@ def is_upload(candidate):
     """
     True only when a form field holds a *freshly uploaded* file.
 
-    WTForms file fields keep whatever they were pre-populated with when the
+    WTForms file fields keep whatever they were pre-populated with when a
     form is built from an existing record (e.g. ProfileForm(obj=profile)
-    puts the stored filename string into form.photo.data). On submit without
-    a new file, that string is still sitting there and is truthy, which used
-    to reach save_upload() and blow up with
-    "'str' object has no attribute 'filename'". Always gate uploads on this
-    helper instead of on plain truthiness.
+    puts the stored filename string into form.photo.data). On submit
+    without picking a new file, that string is still sitting there and is
+    truthy, which can reach save_upload() and blow up with "'str' object
+    has no attribute 'filename'". Always gate uploads on this helper
+    instead of on plain truthiness or an ad-hoc hasattr() check.
     """
     return isinstance(candidate, FileStorage) and bool(candidate.filename)
 
@@ -132,3 +132,20 @@ def log_action(action, details="", user_id=None):
 
 def make_reference_no(request_id):
     return f"VB-AGR-{request_id:06d}-{secrets.token_hex(2).upper()}"
+
+
+def notify(user_id, title, message="", url=None):
+    """
+    Creates an in-app notification for a user, shown from the navbar bell.
+    Never raises to the caller -- a notification failing to save should
+    never break the action that triggered it.
+    """
+    from models import Notification
+    try:
+        if not user_id:
+            return
+        n = Notification(user_id=user_id, title=title[:150], message=(message or "")[:500], url=url)
+        db.session.add(n)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
