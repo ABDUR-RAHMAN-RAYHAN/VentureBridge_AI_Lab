@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Investors{% endblock %}
+{% block title %}Find Investors{% endblock %}
 {% block content %}
 <div class="animate-in">
   <div class="flex-between flex-wrap gap-2">
-    <h1>Explore Investors</h1>
+    <h1>Find Investors</h1>
   </div>
-  <p class="text-muted" style="margin:-.4rem 0 1rem;">Send a direct funding request to an investor: pick one of
-    your startups, say how much you need, and what equity or share you're offering.</p>
+  <p class="text-muted" style="margin:-.4rem 0 1rem;">Only identity-verified investors are shown here. Reach out
+    directly and they'll get a notification to review your request.</p>
 
   <form method="GET" class="glass card-pad" style="margin-bottom:1.5rem;">
     <div class="form-group"><label>Name</label><input type="text" name="q" value="{{ q }}" placeholder="Search investors"></div>
@@ -34,15 +34,19 @@
       </p>
       <div class="flex gap-1 flex-wrap" style="margin-bottom:.7rem;">
         {% if inv.profile and inv.profile.industry %}<span class="badge badge-blue">{{ inv.profile.industry }}</span>{% endif %}
-        {% if inv.is_verified() %}<span class="badge badge-verified">Verified</span>{% endif %}
+        <span class="badge badge-verified">Verified</span>
       </div>
       {% if inv.profile and inv.profile.interests %}
       <p class="text-muted" style="font-size:.8rem;margin-bottom:.7rem;"><strong>Interested in:</strong> {{ inv.profile.interests }}</p>
       {% endif %}
-      <a href="{{ url_for('investment.send_founder_request', investor_id=inv.id) }}" class="btn btn-primary btn-sm">Send Funding Request</a>
+      {% if inv.id in already_contacted %}
+        <span class="btn btn-outline btn-sm" style="opacity:.6;pointer-events:none;">Already Contacted</span>
+      {% else %}
+        <a href="{{ url_for('investment.approach_investor', investor_id=inv.id) }}" class="btn btn-primary btn-sm">Send Investment Request</a>
+      {% endif %}
     </div>
     {% else %}
-    <p class="text-muted">No investors match your search.</p>
+    <p class="text-muted">No verified investors match your search yet.</p>
     {% endfor %}
   </div>
 </div>

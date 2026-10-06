@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Send Investment Request{% endblock %}
+{% block content %}
+<div class="glass card-pad animate-in" style="max-width:600px;margin:0 auto;">
+  <h1>Send Investment Request</h1>
+  <p class="text-muted">To <strong>{{ investor.full_name }}</strong> <span class="badge badge-verified">Verified</span></p>
+
+  <form method="POST" novalidate>
+    {{ form.hidden_tag() }}
+    <div class="form-group">{{ form.startup_id.label }} {{ form.startup_id() }}
+      {% for e in form.startup_id.errors %}<div class="form-error">{{ e }}</div>{% endfor %}</div>
+    <div class="form-group">{{ form.message.label }} {{ form.message(rows=5, placeholder="Introduce your startup and why this investor is a good fit.") }}
+      {% for e in form.message.errors %}<div class="form-error">{{ e }}</div>{% endfor %}</div>
+    <p class="form-hint">Once sent, {{ investor.full_name }} will get a notification and can review it from
+      their Investment Requests page. If they're interested, you'll then submit a funding proposal — the
+      same next step as any other investment request.</p>
+    <button class="btn btn-primary" style="margin-top:.5rem;width:100%;" type="submit">Send Request</button>
+  </form>
+</div>
+{% endblock %}

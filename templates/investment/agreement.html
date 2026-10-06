@@ -4,12 +4,17 @@
 
 <div class="doc-toolbar no-print">
   <a href="{{ url_for('main.dashboard') }}">← Back to Dashboard</a>
+  {% if agreement.is_fully_signed() %}
   <button class="primary" onclick="window.print()">Print / Save as PDF</button>
+  {% else %}
+  <button class="primary" disabled title="Both parties must upload their signature before this can be downloaded"
+          style="opacity:.5;cursor:not-allowed;">Print / Save as PDF (locked)</button>
+  {% endif %}
 </div>
 
-{% if agreement.status != 'active' %}
+{% if agreement.status != 'active' or not agreement.is_fully_signed() %}
 <div class="doc-page no-print" style="padding:1.5rem 2rem;margin-bottom:0;">
-  <p style="margin:0;"><strong>Signatures required before this Agreement takes effect.</strong></p>
+  <p style="margin:0;"><strong>Both signatures are required before this Agreement can be downloaded or printed.</strong></p>
   <p class="doc-muted" style="margin:.4rem 0;">
     Founder: <span class="doc-badge">{{ "Signed" if agreement.founder_signed_at else "Pending" }}</span>
     &nbsp; Investor: <span class="doc-badge">{{ "Signed" if agreement.investor_signed_at else "Pending" }}</span>
@@ -20,6 +25,7 @@
 </div>
 {% endif %}
 
+{% if agreement.is_fully_signed() %}
 <div class="doc-page">
   <div class="doc-header">
     <img src="{{ url_for('static', filename='img/logo.png') }}">
@@ -199,7 +205,14 @@
     <div class="doc-grid-2">
       <div>
         {% if agreement.founder_signed_at %}
-          <span class="doc-signature-line"><em>{{ agreement.founder_signed_name }}</em></span><br>
+          {% set fext = agreement.founder_signature_filename.rsplit('.', 1)[-1].lower() %}
+          {% if fext in ['png', 'jpg', 'jpeg'] %}
+            <img src="{{ url_for('static', filename='uploads/signatures/' ~ agreement.founder_signature_filename) }}"
+                 alt="Founder signature" style="max-height:70px;max-width:220px;display:block;">
+          {% else %}
+            <a class="no-print" href="{{ url_for('static', filename='uploads/signatures/' ~ agreement.founder_signature_filename) }}" target="_blank">📄 View signed PDF</a>
+            <span class="doc-signature-line">&nbsp;</span>
+          {% endif %}
           <span class="doc-small">Executed electronically {{ agreement.founder_signed_at.strftime("%Y-%m-%d %H:%M UTC") }}</span>
         {% else %}
           <span class="doc-signature-line">&nbsp;</span><br><span class="doc-small">Not yet signed</span>
@@ -208,7 +221,14 @@
       </div>
       <div>
         {% if agreement.investor_signed_at %}
-          <span class="doc-signature-line"><em>{{ agreement.investor_signed_name }}</em></span><br>
+          {% set iext = agreement.investor_signature_filename.rsplit('.', 1)[-1].lower() %}
+          {% if iext in ['png', 'jpg', 'jpeg'] %}
+            <img src="{{ url_for('static', filename='uploads/signatures/' ~ agreement.investor_signature_filename) }}"
+                 alt="Investor signature" style="max-height:70px;max-width:220px;display:block;">
+          {% else %}
+            <a class="no-print" href="{{ url_for('static', filename='uploads/signatures/' ~ agreement.investor_signature_filename) }}" target="_blank">📄 View signed PDF</a>
+            <span class="doc-signature-line">&nbsp;</span>
+          {% endif %}
           <span class="doc-small">Executed electronically {{ agreement.investor_signed_at.strftime("%Y-%m-%d %H:%M UTC") }}</span>
         {% else %}
           <span class="doc-signature-line">&nbsp;</span><br><span class="doc-small">Not yet signed</span>
@@ -224,4 +244,5 @@
     Agreement reviewed by independent legal counsel before or after signing, particularly to complete Section 6.
   </p>
 </div>
+{% endif %}
 {% endblock %}

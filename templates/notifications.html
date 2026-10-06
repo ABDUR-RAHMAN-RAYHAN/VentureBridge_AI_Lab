@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Notifications{% endblock %}
+{% block content %}
+<div class="animate-in">
+  <div class="flex-between" style="align-items:center;">
+    <h1>Notifications</h1>
+    {% if notifs %}
+    <form method="POST" action="{{ url_for('main.mark_all_notifications_read') }}">
+      <button type="submit" class="btn btn-outline btn-sm">Mark all read</button>
+    </form>
+    {% endif %}
+  </div>
+  <p class="text-muted">Account decisions, signature requests, fund releases, job updates, and anything
+    else that needs your attention show up here.</p>
+
+  <div class="glass card-pad" style="padding:0;">
+    {% for n in notifs %}
+      <div class="notif-row {{ '' if n.is_read else 'notif-row-unread' }}">
+        <div style="flex:1;">
+          <strong>{{ n.title }}</strong>
+          {% if n.message %}<p class="text-muted" style="margin:.2rem 0 0;">{{ n.message }}</p>{% endif %}
+          <span class="text-muted" style="font-size:.78rem;">{{ n.created_at.strftime("%Y-%m-%d %H:%M") }}</span>
+        </div>
+        <div style="display:flex;gap:.4rem;align-items:center;">
+          {% if n.url %}<a href="{{ n.url }}" class="btn btn-sm btn-outline">Open</a>{% endif %}
+          {% if not n.is_read %}
+            <form method="POST" action="{{ url_for('main.mark_notification_read', notif_id=n.id) }}">
+              <button type="submit" class="btn btn-sm btn-outline">Mark read</button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    {% else %}
+      <p class="text-muted" style="padding:1rem;">No notifications yet.</p>
+    {% endfor %}
+  </div>
+
+  {% if pagination and pagination.pages > 1 %}
+  <div class="pagination">
+    {% for p in range(1, pagination.pages+1) %}
+      <a href="{{ url_for('main.notifications', page=p) }}" class="{{ 'active' if p == pagination.page else '' }}">{{ p }}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

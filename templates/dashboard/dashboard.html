@@ -86,12 +86,12 @@
       {{ stat("Startups", startup_count, "", url_for('startups.list_startups', mine=1)) }}
       {{ stat("Active Jobs", active_jobs, "", url_for('jobs.list_jobs', mine=1)) }}
       {{ stat("Applications", applications_received, "", url_for('jobs.received_applications')) }}
-      {{ stat("Pending Requests", pending_requests, "Investment interest", url_for('investment.founder_requests', status="pending")) }}
+      {{ stat("Pending Requests", pending_requests, "Investment interest", url_for('investment.founder_requests')) }}
     </div>
 
     <h2 style="font-size:1.05rem;margin:1.8rem 0 .7rem;">Funding</h2>
     <div class="grid grid-4">
-      {{ money("Agreed Funding", total_expected, "Across active agreements", url_for('investment.founder_requests', status="active")) }}
+      {{ money("Agreed Funding", total_expected, "Across active agreements", url_for('investment.founder_requests')) }}
       {{ money("Received (net)", total_received, "After platform fees", url_for('investment.transaction_history')) }}
       {{ money("Held for You", pending_release, "Awaiting milestone release", url_for('investment.transaction_history')) }}
       {{ money("Not Yet Deposited", awaiting_investor_payment, "Investor hasn't sent", url_for('investment.transaction_history')) }}
@@ -122,18 +122,49 @@
       </div>
     </div>
 
+    <div class="glass card-pad" style="margin-top:1.5rem;">
+      <div class="flex-between flex-wrap gap-2" style="margin-bottom:.9rem;">
+        <h3 style="margin:0;">Find Verified Investors</h3>
+        <a href="{{ url_for('investment.browse_investors') }}" class="btn btn-outline btn-sm">Browse All</a>
+      </div>
+      {% if suggested_investors %}
+      <div class="grid grid-3">
+        {% for inv in suggested_investors %}
+        <div class="glass card-pad hover-lift" style="box-shadow:none;">
+          <div class="flex gap-2">
+            {% if inv.profile and inv.profile.photo %}
+              <img src="{{ url_for('static', filename='uploads/' ~ inv.profile.photo) }}" class="avatar">
+            {% else %}
+              <div class="avatar" style="background:linear-gradient(135deg,var(--blue-500),var(--green-500));"></div>
+            {% endif %}
+            <div>
+              <strong style="font-size:.92rem;">{{ inv.full_name }}</strong><br>
+              <span class="badge badge-verified" style="font-size:.7rem;">Verified</span>
+              {% if inv.profile and inv.profile.industry %}<span class="badge badge-blue" style="font-size:.7rem;">{{ inv.profile.industry }}</span>{% endif %}
+            </div>
+          </div>
+          <a href="{{ url_for('investment.approach_investor', investor_id=inv.id) }}" class="btn btn-primary btn-sm" style="margin-top:.8rem;width:100%;">Send Investment Request</a>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-muted" style="font-size:.88rem;">No new verified investors to suggest right now —
+        <a href="{{ url_for('investment.browse_investors') }}">browse everyone you've already contacted</a>.</p>
+      {% endif %}
+    </div>
+
   {# ============================ INVESTOR ============================ #}
   {% elif current_user.role == 'investor' %}
     <h2 style="font-size:1.05rem;margin-bottom:.7rem;">Overview</h2>
     <div class="grid grid-3">
       {{ stat("Interests Sent", sent, "", url_for('investment.investor_requests')) }}
-      {{ stat("Active Agreements", accepted, "Fully signed", url_for('investment.investor_requests', status="active")) }}
+      {{ stat("Active Agreements", accepted, "Fully signed", url_for('investment.investor_requests')) }}
       {{ stat("Connections", connections, "Messaging unlocked", url_for('messaging.inbox')) }}
     </div>
 
     <h2 style="font-size:1.05rem;margin:1.8rem 0 .7rem;">Funding</h2>
     <div class="grid grid-3">
-      {{ money("Total Committed", total_committed, "Across active agreements", url_for('investment.investor_requests', status="active")) }}
+      {{ money("Total Committed", total_committed, "Across active agreements", url_for('investment.investor_requests')) }}
       {{ money("Deposited", total_sent, "Confirmed by VentureBridge", url_for('investment.transaction_history')) }}
       {{ money("Still To Deposit", total_owed, "Not yet sent", url_for('investment.transaction_history')) }}
     </div>
@@ -152,7 +183,7 @@
     <h2 style="font-size:1.05rem;margin-bottom:.7rem;">Overview</h2>
     <div class="grid grid-2">
       {{ stat("Applications Sent", applications_sent, "", url_for('jobs.my_applications')) }}
-      {{ stat("Shortlisted", shortlisted, "Moved forward by a founder", url_for('jobs.my_applications', status="shortlisted")) }}
+      {{ stat("Shortlisted", shortlisted, "Moved forward by a founder", url_for('jobs.my_applications')) }}
     </div>
 
     <div class="flex gap-2 flex-wrap" style="margin:1.5rem 0;">
